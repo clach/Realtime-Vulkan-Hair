@@ -6,3 +6,6 @@ Final Project**
 * Caroline Lachanski: [LinkedIn](https://www.linkedin.com/in/caroline-lachanski/), [personal website](http://carolinelachanski.com/)
 
 Tested on: TBD
+
+# Milestones
+- [Pitch](presentations/ProjectPitch.pdf)
