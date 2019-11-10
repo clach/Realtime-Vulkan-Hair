@@ -130,7 +130,7 @@ int main() {
     );
     plane->SetTexture(grassImage);
     
-    Hair* hair = new Hair(device, transferCommandPool, planeDim);
+    Hair* hair = new Hair(device, transferCommandPool);
 
     vkDestroyCommandPool(device->GetVkDevice(), transferCommandPool, nullptr);
 
