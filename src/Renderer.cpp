@@ -174,6 +174,26 @@ void Renderer::CreateModelDescriptorSetLayout() {
 }
 
 void Renderer::CreateHairDescriptorSetLayout() {
+	// TODO: Fill out hair descriptor set layout
+
+	VkDescriptorSetLayoutBinding uboLayoutBinding = {};
+	uboLayoutBinding.binding = 0;
+	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	uboLayoutBinding.descriptorCount = 1;
+	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	uboLayoutBinding.pImmutableSamplers = nullptr;
+
+	std::vector<VkDescriptorSetLayoutBinding> bindings = { uboLayoutBinding };
+
+	// Create the descriptor set layout
+	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+	layoutInfo.pBindings = bindings.data();
+
+	if (vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &hairDescriptorSetLayout) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create descriptor set layout");
+	}
 }
 
 void Renderer::CreateTimeDescriptorSetLayout() {
@@ -199,32 +219,19 @@ void Renderer::CreateTimeDescriptorSetLayout() {
 }
 
 void Renderer::CreateComputeDescriptorSetLayout() {
-    // TODO: Create the descriptor set layout for the compute pipeline
-    // Remember this is like a class definition stating why types of information
+    // NOTE: Remember this is like a class definition stating what types of information
     // will be stored at each binding
 
 	VkDescriptorSetLayoutBinding sboLayoutBindingInput = {};
-	sboLayoutBindingInput.binding = 0;
+	sboLayoutBindingInput.binding = 0;										// binding value in compute shader
 	sboLayoutBindingInput.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 	sboLayoutBindingInput.descriptorCount = 1;
 	sboLayoutBindingInput.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 	sboLayoutBindingInput.pImmutableSamplers = nullptr;
 
-	VkDescriptorSetLayoutBinding sboLayoutBindingCulled = {};
-	sboLayoutBindingCulled.binding = 1;
-	sboLayoutBindingCulled.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-	sboLayoutBindingCulled.descriptorCount = 1;									// NOTE: if things aren't working, check if this should be 2 and 3 instead of all 1
-	sboLayoutBindingCulled.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-	sboLayoutBindingCulled.pImmutableSamplers = nullptr;
+	// TODO: Add more bindings if needed (ex. culled strands, num strands)
 
-	VkDescriptorSetLayoutBinding sboLayoutBindingNum = {};
-	sboLayoutBindingNum.binding = 2;
-	sboLayoutBindingNum.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-	sboLayoutBindingNum.descriptorCount = 1;
-	sboLayoutBindingNum.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-	sboLayoutBindingNum.pImmutableSamplers = nullptr;
-
-	std::vector<VkDescriptorSetLayoutBinding> bindings = { sboLayoutBindingInput, sboLayoutBindingCulled, sboLayoutBindingNum };
+	std::vector<VkDescriptorSetLayoutBinding> bindings = { sboLayoutBindingInput };
 
 	// Create the descriptor set layout
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
@@ -359,6 +366,44 @@ void Renderer::CreateModelDescriptorSets() {
 }
 
 void Renderer::CreateHairDescriptorSets() {
+	// TODO: Create Descriptor sets for the hair.
+	// This should involve creating descriptor sets which point to the model matrix of each group of hair
+	hairDescriptorSets.resize(scene->GetHair().size());
+
+	// Describe the desciptor set
+	VkDescriptorSetLayout layouts[] = { hairDescriptorSetLayout };
+	VkDescriptorSetAllocateInfo allocInfo = {};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = descriptorPool;
+	allocInfo.descriptorSetCount = static_cast<uint32_t>(hairDescriptorSets.size());
+	allocInfo.pSetLayouts = layouts;
+
+	// Allocate descriptor sets
+	if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, hairDescriptorSets.data()) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to allocate descriptor set");
+	}
+
+	std::vector<VkWriteDescriptorSet> descriptorWrites(hairDescriptorSets.size());
+
+	for (uint32_t i = 0; i < scene->GetHair().size(); ++i) {
+		VkDescriptorBufferInfo hairBufferInfo = {};
+		hairBufferInfo.buffer = scene->GetHair()[i]->GetModelBuffer();
+		hairBufferInfo.offset = 0;
+		hairBufferInfo.range = sizeof(ModelBufferObject);
+
+		descriptorWrites[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[i].dstSet = hairDescriptorSets[i];
+		descriptorWrites[i].dstBinding = 0;
+		descriptorWrites[i].dstArrayElement = 0;
+		descriptorWrites[i].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrites[i].descriptorCount = 1;
+		descriptorWrites[i].pBufferInfo = &hairBufferInfo;
+		descriptorWrites[i].pImageInfo = nullptr;
+		descriptorWrites[i].pTexelBufferView = nullptr;
+	}
+
+	// Update descriptor sets
+	vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
 
 void Renderer::CreateTimeDescriptorSet() {
@@ -397,6 +442,7 @@ void Renderer::CreateTimeDescriptorSet() {
 }
 
 void Renderer::CreateComputeDescriptorSets() {
+	// TODO: Create compute descriptor sets. 
    
 	computeDescriptorSets.resize(scene->GetHair().size());
 
@@ -413,7 +459,25 @@ void Renderer::CreateComputeDescriptorSets() {
 		throw std::runtime_error("Failed to allocate descriptor set");
 	}
 
-	std::vector<VkWriteDescriptorSet> descriptorWrites(3 * computeDescriptorSets.size());
+	int numBuffers = 1; // TODO: set to number of buffers to compute (input, culled, num)
+	std::vector<VkWriteDescriptorSet> descriptorWrites(computeDescriptorSets.size()); 
+
+	for (uint32_t i = 0; i < scene->GetHair().size(); ++i) {
+		VkDescriptorBufferInfo hairBufferInfo = {};
+		hairBufferInfo.buffer = scene->GetHair()[i]->GetStrandsBuffer();
+		hairBufferInfo.offset = 0;
+		hairBufferInfo.range = NUM_STRANDS * sizeof(Strand);
+
+		descriptorWrites[numBuffers * i + 0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[numBuffers * i + 0].dstSet = computeDescriptorSets[i];
+		descriptorWrites[numBuffers * i + 0].dstBinding = 0;
+		descriptorWrites[numBuffers * i + 0].dstArrayElement = 0;
+		descriptorWrites[numBuffers * i + 0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		descriptorWrites[numBuffers * i + 0].descriptorCount = 1;
+		descriptorWrites[numBuffers * i + 0].pBufferInfo = &hairBufferInfo;
+		descriptorWrites[numBuffers * i + 0].pImageInfo = nullptr;
+		descriptorWrites[numBuffers * i + 0].pTexelBufferView = nullptr;
+	}
 
 	// Update descriptor sets
 	vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
@@ -579,6 +643,8 @@ void Renderer::CreateGraphicsPipeline() {
 }
 
 void Renderer::CreateHairPipeline() {
+	// TODO: Make sure all options here have desired settings
+
     // --- Set up programmable shaders ---
     VkShaderModule vertShaderModule = ShaderModule::Create("shaders/hair.vert.spv", logicalDevice);
     VkShaderModule tescShaderModule = ShaderModule::Create("shaders/hair.tesc.spv", logicalDevice);
@@ -773,7 +839,6 @@ void Renderer::CreateComputePipeline() {
     computeShaderStageInfo.module = computeShaderModule;
     computeShaderStageInfo.pName = "main";
 
-    // TODO: Add the compute dsecriptor set layout you create to this list
     std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, timeDescriptorSetLayout, computeDescriptorSetLayout };
 
     // Create pipeline layout
@@ -940,6 +1005,14 @@ void Renderer::RecordComputeCommandBuffer() {
     // Bind descriptor set for time uniforms
     vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 1, 1, &timeDescriptorSet, 0, nullptr);
 
+
+	// TODO: for each group of strands, bind its descriptor set and dispatch
+	// Check these function inputs.  Uncomment dispatch when ready to run compute shader.
+	for (int i = 0; i < scene->GetHair().size(); ++i) {
+		vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 2 + i, 1, &computeDescriptorSets[i], 0, nullptr);
+		// vkCmdDispatch(computeCommandBuffer, (int)ceil((NUM_STRANDS + WORKGROUP_SIZE - 1) / WORKGROUP_SIZE), 1, 1);
+	}
+
     // ~ End recording ~
     if (vkEndCommandBuffer(computeCommandBuffer) != VK_SUCCESS) {
         throw std::runtime_error("Failed to record compute command buffer");
@@ -986,6 +1059,8 @@ void Renderer::RecordCommandBuffers() {
         renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
         renderPassInfo.pClearValues = clearValues.data();
 
+
+		// TODO: Do we need num strands and strand draw indirect?
        /* std::vector<VkBufferMemoryBarrier> barriers(scene->GetHair().size());
         for (uint32_t j = 0; j < barriers.size(); ++j) {
             barriers[j].sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
@@ -993,9 +1068,9 @@ void Renderer::RecordCommandBuffers() {
             barriers[j].dstAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
             barriers[j].srcQueueFamilyIndex = device->GetQueueIndex(QueueFlags::Compute);
             barriers[j].dstQueueFamilyIndex = device->GetQueueIndex(QueueFlags::Graphics);
-            barriers[j].buffer = scene->GetHair()[j]->GetNumBladesBuffer();
+            barriers[j].buffer = scene->GetHair()[j]->GetNumStrandsBuffer();
             barriers[j].offset = 0;
-            barriers[j].size = sizeof(BladeDrawIndirect);
+            barriers[j].size = sizeof(StrandDrawIndirect);
         }*/
 
         //vkCmdPipelineBarrier(commandBuffers[i], VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, 0, 0, nullptr, barriers.size(), barriers.data(), 0, nullptr);
@@ -1027,20 +1102,22 @@ void Renderer::RecordCommandBuffers() {
         // Bind the grass pipeline
         vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, hairPipeline);
 
-    //    for (uint32_t j = 0; j < scene->GetBlades().size(); ++j) {
-    //        VkBuffer vertexBuffers[] = { scene->GetBlades()[j]->GetCulledBladesBuffer() };
-    //        VkDeviceSize offsets[] = { 0 };
-    //        // TODO: Uncomment this when the buffers are populated
-    //         vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
+		// TODO: Confirm this for loop
+        for (uint32_t j = 0; j < scene->GetHair().size(); ++j) {
+			// NOTE: This was GetCulledBuffer() because we were drawing non culled blades.
+            VkBuffer vertexBuffers[] = { scene->GetHair()[j]->GetStrandsBuffer() }; 
+            VkDeviceSize offsets[] = { 0 };
+            // TODO: Uncomment this when the buffers are populated
+             //vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
 
-    //        // TODO: Bind the descriptor set for each grass blades model
-			 //vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, grassPipelineLayout, 1, 1, &grassDescriptorSets[j], 0, nullptr);
+            // TODO: Bind the descriptor set for each hair strands model
+			 //vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, hairPipelineLayout, 1, 1, &hairDescriptorSets[j], 0, nullptr);
 
-
-    //        // Draw
-    //        // TODO: Uncomment this when the buffers are populated
-    //         vkCmdDrawIndirect(commandBuffers[i], scene->GetBlades()[j]->GetNumBladesBuffer(), 0, 1, sizeof(BladeDrawIndirect));
-    //    }
+            // Draw
+            // TODO: Uncomment this when the buffers are populated
+			// TODO: Do we need a num strands buffer and strandDrawIndirect like we had for blades?
+    //         vkCmdDrawIndirect(commandBuffers[i], scene->GetHair()[j]->GetNumStrandsBuffer(), 0, 1, sizeof(StrandDrawIndirect));
+        }
 
         // End render pass
         vkCmdEndRenderPass(commandBuffers[i]);
