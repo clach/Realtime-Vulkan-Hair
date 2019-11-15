@@ -18,10 +18,10 @@ void main() {
 		out_controlPoints[gl_InvocationID][i] = in_controlPoints[gl_InvocationID][i];
 	}
 
-     gl_TessLevelInner[0] = 2;
-     gl_TessLevelInner[1] = 8;
-     gl_TessLevelOuter[0] = 8;
-     gl_TessLevelOuter[1] = 2;
-     gl_TessLevelOuter[2] = 8;
-     gl_TessLevelOuter[3] = 8;
+     //gl_TessLevelInner[0] = 2;
+     //gl_TessLevelInner[1] = 8;
+     gl_TessLevelOuter[0] = 4;
+     gl_TessLevelOuter[1] = 32;
+     //gl_TessLevelOuter[2] = 8;
+     //gl_TessLevelOuter[3] = 8;
 }
