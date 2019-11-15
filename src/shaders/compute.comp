@@ -47,7 +47,7 @@ void main() {
 	float gravityAcc = 9.81f;
 	vec3 gravity = gravityDir * gravityAcc;
 
-	float radius = 0.5;
+	float radius = 2.0;
 
 	Strand strand = inStrands[threadIdx];
 	for (int i = 1; i < NUM_CONTROL_POINTS; i++) {
@@ -67,6 +67,9 @@ void main() {
 	}
 	for (int i = 1; i < NUM_CONTROL_POINTS - 1; ++i) {
 		strand.controlVels[i] -= strand.correctionVecs[i + 1] / deltaTime;
+	}
+	for (int i = 1; i < NUM_CONTROL_POINTS; ++i) {
+		strand.controlVels[i] *= 0.99995;
 	}
 
 	inStrands[threadIdx] = strand;

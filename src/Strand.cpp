@@ -16,6 +16,7 @@ Hair::Hair(Device* device, VkCommandPool commandPool) : Model(device, commandPoo
 	for (int i = 0; i < NUM_STRANDS; ++i) {
 		Strand currentStrand = Strand();
 		float length = MIN_LENGTH + (generateRandomFloat() * (MAX_LENGTH - MIN_LENGTH));
+		length = 4.0;
 
 		// Hard coded control points based on length calculation
 		float currY = 0.0;
@@ -25,7 +26,7 @@ Hair::Hair(Device* device, VkCommandPool commandPool) : Model(device, commandPoo
 			currentStrand.controlVels[i] = glm::vec4(0.0);
 			currentStrand.correctionVecs[i] = glm::vec4(0.0);
 			currY += length / (NUM_CONTROL_POINTS - 1.0);
-			currX += 0.1;
+			currX += 0.5;
 		}
 
 		strands.push_back(currentStrand);

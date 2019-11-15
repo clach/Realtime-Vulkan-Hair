@@ -6,8 +6,8 @@
 
 constexpr static unsigned int NUM_STRANDS = 1;
 constexpr static unsigned int NUM_CONTROL_POINTS = 3;
-constexpr static float MIN_LENGTH = 1.0f;
-constexpr static float MAX_LENGTH = 5.0f;
+constexpr static float MIN_LENGTH = 40.0f;
+constexpr static float MAX_LENGTH = 50.0f;
 // TODO: Add more parameters of hair strands here as needed and adjust above values
 
 struct Strand {
