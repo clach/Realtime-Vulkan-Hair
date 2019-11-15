@@ -27,14 +27,28 @@ Hair::Hair(Device* device, VkCommandPool commandPool) : Model(device, commandPoo
 		strands.push_back(currentStrand);
 	}
 
-	BufferUtils::CreateBufferFromData(device, commandPool, strands.data(), NUM_STRANDS * sizeof(Strand), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, strandsBuffer, strandsBufferMemory);
+	StrandDrawIndirect indirectDraw;
+	indirectDraw.vertexCount = NUM_STRANDS;
+	indirectDraw.instanceCount = 1;
+	indirectDraw.firstVertex = 0;
+	indirectDraw.firstInstance = 0;
+
+	BufferUtils::CreateBufferFromData(device, commandPool, strands.data(), NUM_STRANDS * sizeof(Strand), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, strandsBuffer, strandsBufferMemory);
+	BufferUtils::CreateBufferFromData(device, commandPool, &indirectDraw, sizeof(StrandDrawIndirect), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, numStrandsBuffer, numStrandsBufferMemory);
 }
 
 VkBuffer Hair::GetStrandsBuffer() const {
     return strandsBuffer;
 }
 
+VkBuffer Hair::GetNumStrandsBuffer() const {
+	return numStrandsBuffer;
+}
+
 Hair::~Hair() {
     vkDestroyBuffer(device->GetVkDevice(), strandsBuffer, nullptr);
     vkFreeMemory(device->GetVkDevice(), strandsBufferMemory, nullptr);
+
+	vkDestroyBuffer(device->GetVkDevice(), numStrandsBuffer, nullptr);
+	vkFreeMemory(device->GetVkDevice(), numStrandsBufferMemory, nullptr);
 }

@@ -150,7 +150,7 @@ int main() {
 		double previousTime = glfwGetTime();
         renderer->Frame();
 		double currentTime = glfwGetTime();
-		std::cout << currentTime - previousTime << std::endl;
+		//std::cout << currentTime - previousTime << std::endl;
     }
 
     vkDeviceWaitIdle(device->GetVkDevice());
