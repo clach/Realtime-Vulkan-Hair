@@ -19,9 +19,13 @@ Hair::Hair(Device* device, VkCommandPool commandPool) : Model(device, commandPoo
 
 		// Hard coded control points based on length calculation
 		float currY = 0.0;
+		float currX = 0.0;
 		for (int i = 0; i < NUM_CONTROL_POINTS; ++i) {
-			currentStrand.controlPoints[i] = glm::vec4(0.0, currY, 0.0, 1.0);
+			currentStrand.controlPoints[i] = glm::vec4(currX, currY, 0.0, 1.0);
+			currentStrand.controlVels[i] = glm::vec4(0.0);
+			currentStrand.correctionVecs[i] = glm::vec4(0.0);
 			currY += length / (NUM_CONTROL_POINTS - 1.0);
+			currX += 0.1;
 		}
 
 		strands.push_back(currentStrand);

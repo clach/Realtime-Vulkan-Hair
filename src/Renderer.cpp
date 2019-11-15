@@ -227,12 +227,20 @@ void Renderer::CreateComputeDescriptorSetLayout() {
     // NOTE: Remember this is like a class definition stating what types of information
     // will be stored at each binding
 
-	VkDescriptorSetLayoutBinding inStrandsLayoutBinding = {};
-	inStrandsLayoutBinding.binding = 0;										// binding value in compute shader
-	inStrandsLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-	inStrandsLayoutBinding.descriptorCount = 1;
-	inStrandsLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-	inStrandsLayoutBinding.pImmutableSamplers = nullptr;
+	VkDescriptorSetLayoutBinding inStrandsPosLayoutBinding = {};
+	inStrandsPosLayoutBinding.binding = 0;										// binding value in compute shader
+	inStrandsPosLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	inStrandsPosLayoutBinding.descriptorCount = 1;
+	inStrandsPosLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+	inStrandsPosLayoutBinding.pImmutableSamplers = nullptr;
+
+	/*VkDescriptorSetLayoutBinding inStrandsVelLayoutBinding = {};
+	inStrandsVelLayoutBinding.binding = 1;									
+	inStrandsVelLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	inStrandsVelLayoutBinding.descriptorCount = 1;
+	inStrandsVelLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+	inStrandsVelLayoutBinding.pImmutableSamplers = nullptr;*/
+
 
 	// TODO: Add more bindings if needed (ex. culled strands, num strands)
 	VkDescriptorSetLayoutBinding numStrandsLayoutBinding = {};
@@ -242,7 +250,7 @@ void Renderer::CreateComputeDescriptorSetLayout() {
 	numStrandsLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 	numStrandsLayoutBinding.pImmutableSamplers = nullptr;
 
-	std::vector<VkDescriptorSetLayoutBinding> bindings = { inStrandsLayoutBinding, numStrandsLayoutBinding };
+	std::vector<VkDescriptorSetLayoutBinding> bindings = { inStrandsPosLayoutBinding, /*inStrandsVelLayoutBinding,*/ numStrandsLayoutBinding };
 
 	// Create the descriptor set layout
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
