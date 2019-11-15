@@ -50,7 +50,7 @@ void main() {
 		controlPoint += vec4(gravity * deltaTime, 0.f);
 		strand.controlPoints[i] = controlPoint;
 	}
-	inStrands[threadIdx] = strand;
+	//inStrands[threadIdx] = strand;
 	
 
 	atomicAdd(numStrands.vertexCount, 1);

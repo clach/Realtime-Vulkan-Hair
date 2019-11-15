@@ -1,7 +1,8 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-layout(quads, equal_spacing, ccw) in;
+layout(isolines) in;
+//layout(quads, equal_spacing, ccw) in;
 
 layout(set = 0, binding = 0) uniform CameraBufferObject {
     mat4 view;
@@ -12,8 +13,8 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 layout(location = 0) in vec4[][3] in_controlPoints;
 
 void main() {
-    float u = gl_TessCoord.x;
-    float v = gl_TessCoord.y;
+    float u = gl_TessCoord.y;
+    float v = gl_TessCoord.x;
 
 
 	// hard coded for now
@@ -37,9 +38,7 @@ void main() {
 	vec3 c0 = c - width * t1;
 	vec3 c1 = c + width * t1;
 
-	// for triangle shape
-	float t = u + 0.5 * v - u * v;
-	vec4 pos = vec4(mix(c0, c1, t), 1.0);
+	vec4 pos = vec4(mix(c0, c1, u), 1.0);
 
 	gl_Position = camera.proj * camera.view * pos;
 }
