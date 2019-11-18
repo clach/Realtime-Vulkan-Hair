@@ -1,6 +1,6 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
-#define NUM_CURVE_POINTS 12
+#define NUM_CURVE_POINTS 10
 
 
 layout(vertices = 1) out;
