@@ -130,7 +130,11 @@ int main() {
     );
     plane->SetTexture(grassImage);
     
-    Hair* hair = new Hair(device, transferCommandPool);
+	// TODO: load head model here
+	//Model* mannequin = new Model(device, transferCommandPool, {}, {});
+	// TODO: add capacity for multiple textures/normal maps/etc for a Model
+
+	Hair* hair = new Hair(device, transferCommandPool, "models/hemisphere.obj");
 
     vkDestroyCommandPool(device->GetVkDevice(), transferCommandPool, nullptr);
 

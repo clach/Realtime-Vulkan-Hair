@@ -2,9 +2,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 #define NUM_CURVE_POINTS 10
 
-
 layout(isolines) in;
-//layout(quads, equal_spacing, ccw) in;
 
 layout(set = 0, binding = 0) uniform CameraBufferObject {
     mat4 view;
@@ -13,9 +11,14 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 
 layout(location = 0) in vec4[][NUM_CURVE_POINTS] in_curvePoints;
 
+layout(location = 0) out vec2 out_uv;
+
+
 void main() {
     float u = gl_TessCoord.y;
     float v = gl_TessCoord.x;
+
+	out_uv = vec2(u, v);
 
 	// If 0 or 1 curve points, there is no curve
 	if (NUM_CURVE_POINTS <= 1) {

@@ -4,7 +4,7 @@
 #include <array>
 #include "Model.h"
 
-constexpr static unsigned int NUM_STRANDS = 2;
+constexpr static unsigned int NUM_STRANDS = 50000;
 constexpr static unsigned int NUM_CURVE_POINTS = 10;
 constexpr static float MIN_LENGTH = 6.0f;
 constexpr static float MAX_LENGTH = 8.0f;
@@ -15,7 +15,6 @@ struct Strand {
 	glm::vec4 curvePoints[NUM_CURVE_POINTS];
 	glm::vec4 curveVels[NUM_CURVE_POINTS];
 	glm::vec4 correctionVecs[NUM_CURVE_POINTS];
-
 	//float len;
 
     static VkVertexInputBindingDescription getBindingDescription() {
@@ -75,8 +74,7 @@ private:
     VkDeviceMemory numStrandsBufferMemory;
 
 public:
-	// TODO: Constructor should take in geometry to sample hair positions from
-    Hair(Device* device, VkCommandPool commandPool);
+    Hair(Device* device, VkCommandPool commandPool, std::string objFilename);
     VkBuffer GetStrandsBuffer() const;
     VkBuffer GetNumStrandsBuffer() const;
     ~Hair();
