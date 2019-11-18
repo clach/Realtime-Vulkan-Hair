@@ -12,21 +12,18 @@ Hair::Hair(Device* device, VkCommandPool commandPool) : Model(device, commandPoo
     strands.reserve(NUM_STRANDS);
 
 	// Create correct number of strands
-	// TODO: Change this to place the first control point at points sampled on a surface and remaining control points along the normal
+	// TODO: Change this to place the first curve point at points sampled on a surface and remaining curve points along the normal
 	for (int i = 0; i < NUM_STRANDS; ++i) {
 		Strand currentStrand = Strand();
-		float length = MIN_LENGTH + (generateRandomFloat() * (MAX_LENGTH - MIN_LENGTH));
-		length = 4.0;
+		currentStrand.len = MIN_LENGTH + (generateRandomFloat() * (MAX_LENGTH - MIN_LENGTH));
 
-		// Hard coded control points based on length calculation
-		float currY = 0.0;
-		float currX = 0.0;
-		for (int i = 0; i < NUM_CONTROL_POINTS; ++i) {
-			currentStrand.controlPoints[i] = glm::vec4(currX, currY, 0.0, 1.0);
-			currentStrand.controlVels[i] = glm::vec4(0.0);
+		// Hard coded curve points based on length calculation
+		float currX = -3.0;
+		for (int i = 0; i < NUM_CURVE_POINTS; ++i) {
+			currentStrand.curvePoints[i] = glm::vec4(currX, 4.0, 0.0, 1.0);
+			currentStrand.curveVels[i] = glm::vec4(0.0);
 			currentStrand.correctionVecs[i] = glm::vec4(0.0);
-			currY += length / (NUM_CONTROL_POINTS - 1.0);
-			currX += 0.5;
+			currX += currentStrand.len / (NUM_CURVE_POINTS - 1.0);
 		}
 
 		strands.push_back(currentStrand);

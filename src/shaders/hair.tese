@@ -1,5 +1,7 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
+#define NUM_CURVE_POINTS 12
+
 
 layout(isolines) in;
 //layout(quads, equal_spacing, ccw) in;
@@ -9,36 +11,71 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
     mat4 proj;
 } camera;
 
-// TODO: Declare tessellation evaluation shader inputs and outputs
-layout(location = 0) in vec4[][3] in_controlPoints;
+layout(location = 0) in vec4[][NUM_CURVE_POINTS] in_curvePoints;
 
 void main() {
     float u = gl_TessCoord.y;
     float v = gl_TessCoord.x;
 
+	// If 0 or 1 curve points, there is no curve
+	if (NUM_CURVE_POINTS <= 1) {
+		gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
+		return;
+	}
 
-	// hard coded for now
-	// TODO: write smarter b-spline/bezier evaluation
+	// Get relevant curve points
+	vec3 v0; // previous point before segment
+	vec3 v1; // current segment's first point
+	vec3 v2; // current segment's second point
+	vec3 v3; // next point after segment
 
-	// gather input
-	vec3 v0 = in_controlPoints[0][0].xyz;
-	vec3 v1 = in_controlPoints[0][1].xyz;
-	vec3 v2 = in_controlPoints[0][2].xyz;
-	float width = 0.1f;
-	float orientation = 0.5f * 2.f * 3.14159265f;
+	
+	// All segments have first and second points
+	int segmentFirst = int(floor(v * (NUM_CURVE_POINTS - 1)));
+	int segmentSecond = segmentFirst + 1;
+	v1 = in_curvePoints[0][segmentFirst].xyz;
+	v2 = in_curvePoints[0][segmentSecond].xyz;
 
-	// deCasteljau's to evaluate Bezier curve
-	vec3 a = mix(v0, v1, v);
-	vec3 b = mix(v1, v2, v);
-	vec3 c = mix(a, b, v);
+	if (segmentFirst == 0) {
+		// If first segment
+		v0 = v1 + (v1 - v2);
+	} else {
+		v0 = in_curvePoints[0][segmentFirst - 1].xyz;
+	}
 
-	//vec3 t1 = normalize(vec3(cos(orientation + PI), 0.0, sin(orientation + PI)));
-	vec3 t1 = normalize(vec3(cos(orientation), 0.0, sin(orientation))); // pointing along width of blade
+	if (segmentSecond == NUM_CURVE_POINTS - 1) {
+		// If last segment
+		v3 = v2 + (v2 - v1);
+	} else {
+		v3 = in_curvePoints[0][segmentSecond + 1].xyz;
+	}
 
+	// Create bezier control points based on 4 surrounding curve points
+	vec3 b0 = v1;
+	vec3 b1 = v1 + ((1.0 / 3.0) * ((v2 - v0) / 2.0));
+	vec3 b2 = v2 - ((1.0 / 3.0) * ((v3 - v1) / 2.0));;
+	vec3 b3 = v2;
+
+	// Interpolation value
+	float t = v * (NUM_CURVE_POINTS - 1) - floor(v * (NUM_CURVE_POINTS - 1));
+
+	// De Casteljau's interpolation for Bezier curve position
+	vec3 b01 = mix(b0, b1, t);
+	vec3 b11 = mix(b1, b2, t);
+	vec3 b21 = mix(b2, b3, t);
+		 		   
+	vec3 b02 = mix(b01, b11, t);
+	vec3 b12 = mix(b11, b21, t);
+		 		   		
+	vec3 c = mix(b02, b12, t);
+
+	float width = 0.1;
+	vec3 t1 = vec3(1.0, 0.0, 0.0);
 	vec3 c0 = c - width * t1;
 	vec3 c1 = c + width * t1;
 
 	vec4 pos = vec4(mix(c0, c1, u), 1.0);
+
 
 	gl_Position = camera.proj * camera.view * pos;
 }

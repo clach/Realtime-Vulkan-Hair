@@ -234,14 +234,6 @@ void Renderer::CreateComputeDescriptorSetLayout() {
 	inStrandsPosLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 	inStrandsPosLayoutBinding.pImmutableSamplers = nullptr;
 
-	/*VkDescriptorSetLayoutBinding inStrandsVelLayoutBinding = {};
-	inStrandsVelLayoutBinding.binding = 1;									
-	inStrandsVelLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-	inStrandsVelLayoutBinding.descriptorCount = 1;
-	inStrandsVelLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-	inStrandsVelLayoutBinding.pImmutableSamplers = nullptr;*/
-
-
 	// TODO: Add more bindings if needed (ex. culled strands, num strands)
 	VkDescriptorSetLayoutBinding numStrandsLayoutBinding = {};
 	numStrandsLayoutBinding.binding = 1;

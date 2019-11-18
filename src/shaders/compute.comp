@@ -2,7 +2,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 
 #define WORKGROUP_SIZE 32
-#define NUM_CONTROL_POINTS 3
+#define NUM_CURVE_POINTS 12
 layout(local_size_x = WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 layout(set = 0, binding = 0) uniform CameraBufferObject {
@@ -16,9 +16,10 @@ layout(set = 1, binding = 0) uniform Time {
 };
 
 struct Strand {
-    vec4 controlPoints[NUM_CONTROL_POINTS];
-	vec4 controlVels[NUM_CONTROL_POINTS];
-	vec4 correctionVecs[NUM_CONTROL_POINTS];
+    vec4 curvePoints[NUM_CURVE_POINTS];
+	vec4 curveVels[NUM_CURVE_POINTS];
+	vec4 correctionVecs[NUM_CURVE_POINTS];
+	float len;
 };
 
 layout(set = 2, binding = 0) buffer InStrands {
@@ -47,13 +48,18 @@ void main() {
 	float gravityAcc = 9.81f;
 	vec3 gravity = gravityDir * gravityAcc;
 
-	float radius = 2.0;
 
 	Strand strand = inStrands[threadIdx];
-	for (int i = 1; i < NUM_CONTROL_POINTS; i++) {
-		vec4 currentPos = strand.controlPoints[i];
-		vec4 currentVel = strand.controlVels[i];
-		vec4 parentPos = strand.controlPoints[i - 1];
+	float radius = strand.len / (NUM_CURVE_POINTS - 1.0);
+
+	strand.curveVels[0] = vec4(3.0 * sin(totalTime), sin(totalTime * 8.0), 0.0, 0.0);
+	strand.curvePoints[0] += deltaTime * strand.curveVels[0];
+
+
+	for (int i = 1; i < NUM_CURVE_POINTS; i++) {
+		vec4 currentPos = strand.curvePoints[i];
+		vec4 currentVel = strand.curveVels[i];
+		vec4 parentPos = strand.curvePoints[i - 1];
 		vec4 force = vec4(0.0, -9.8, 0.0, 0.0);
 		vec4 predictedPos = currentPos + deltaTime * currentVel + deltaTime * deltaTime * force;
 	
@@ -61,15 +67,12 @@ void main() {
 		vec4 newPos = parentPos + radius * direction;
 
 		vec4 newVel = (newPos - currentPos) / deltaTime;
-		strand.controlPoints[i] = newPos;
-		strand.controlVels[i] = newVel;
+		strand.curvePoints[i] = newPos;
+		strand.curveVels[i] = 0.9997 * newVel;
 		strand.correctionVecs[i] = newPos - predictedPos;
 	}
-	for (int i = 1; i < NUM_CONTROL_POINTS - 1; ++i) {
-		strand.controlVels[i] -= strand.correctionVecs[i + 1] / deltaTime;
-	}
-	for (int i = 1; i < NUM_CONTROL_POINTS; ++i) {
-		strand.controlVels[i] *= 0.99995;
+	for (int i = 1; i < NUM_CURVE_POINTS - 1; ++i) {
+		strand.curveVels[i] -= 0.9997 * strand.correctionVecs[i + 1] / deltaTime;
 	}
 
 	inStrands[threadIdx] = strand;

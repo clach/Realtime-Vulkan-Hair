@@ -1,12 +1,14 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
+#define NUM_CURVE_POINTS 12
+
 
 layout(vertices = 1) out;
 
 // TODO: Declare tessellation control shader inputs and outputs
-layout(location = 0) in vec4[][3] in_controlPoints;
+layout(location = 0) in vec4[][NUM_CURVE_POINTS] in_curvePoints;
 
-layout(location = 0) out vec4[][3] out_controlPoints;
+layout(location = 0) out vec4[][NUM_CURVE_POINTS] out_curvePoints;
 
 void main() {
 	// Don't move the origin location of the patch
@@ -14,8 +16,8 @@ void main() {
 
 	// TODO: write any shader outputs
 
-	for (int i = 0; i < 3; i++) {
-		out_controlPoints[gl_InvocationID][i] = in_controlPoints[gl_InvocationID][i];
+	for (int i = 0; i < NUM_CURVE_POINTS; i++) {
+		out_curvePoints[gl_InvocationID][i] = in_curvePoints[gl_InvocationID][i];
 	}
 
      //gl_TessLevelInner[0] = 2;
