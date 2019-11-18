@@ -2,7 +2,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 
 #define WORKGROUP_SIZE 32
-#define NUM_CURVE_POINTS 12
+#define NUM_CURVE_POINTS 10
 layout(local_size_x = WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 layout(set = 0, binding = 0) uniform CameraBufferObject {
@@ -19,7 +19,7 @@ struct Strand {
     vec4 curvePoints[NUM_CURVE_POINTS];
 	vec4 curveVels[NUM_CURVE_POINTS];
 	vec4 correctionVecs[NUM_CURVE_POINTS];
-	float len;
+//	float len;
 };
 
 layout(set = 2, binding = 0) buffer InStrands {
@@ -47,15 +47,15 @@ void main() {
 	vec3 gravityDir = vec3(0.f, -1.f, 0.f);
 	float gravityAcc = 9.81f;
 	vec3 gravity = gravityDir * gravityAcc;
-
-
+	
 	Strand strand = inStrands[threadIdx];
-	float radius = strand.len / (NUM_CURVE_POINTS - 1.0);
-
+	float radius = 4.0 / (NUM_CURVE_POINTS - 1.0);
+//	float radius = strand.len / (NUM_CURVE_POINTS - 1.0);
+//
 	strand.curveVels[0] = vec4(3.0 * sin(totalTime), sin(totalTime * 8.0), 0.0, 0.0);
 	strand.curvePoints[0] += deltaTime * strand.curveVels[0];
 
-
+	float damping = 0.9995;
 	for (int i = 1; i < NUM_CURVE_POINTS; i++) {
 		vec4 currentPos = strand.curvePoints[i];
 		vec4 currentVel = strand.curveVels[i];
@@ -68,15 +68,14 @@ void main() {
 
 		vec4 newVel = (newPos - currentPos) / deltaTime;
 		strand.curvePoints[i] = newPos;
-		strand.curveVels[i] = 0.9997 * newVel;
+		strand.curveVels[i] = damping * newVel;
 		strand.correctionVecs[i] = newPos - predictedPos;
 	}
 	for (int i = 1; i < NUM_CURVE_POINTS - 1; ++i) {
-		strand.curveVels[i] -= 0.9997 * strand.correctionVecs[i + 1] / deltaTime;
+		strand.curveVels[i] -= damping * strand.correctionVecs[i + 1] / deltaTime;
 	}
 
 	inStrands[threadIdx] = strand;
-	
 
 	atomicAdd(numStrands.vertexCount, 1);
 }

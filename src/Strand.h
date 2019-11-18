@@ -4,8 +4,8 @@
 #include <array>
 #include "Model.h"
 
-constexpr static unsigned int NUM_STRANDS = 1;
-constexpr static unsigned int NUM_CURVE_POINTS = 12;
+constexpr static unsigned int NUM_STRANDS = 10000;
+constexpr static unsigned int NUM_CURVE_POINTS = 10;
 constexpr static float MIN_LENGTH = 6.0f;
 constexpr static float MAX_LENGTH = 8.0f;
 // TODO: Add more parameters of hair strands here as needed and adjust above values
@@ -15,10 +15,8 @@ struct Strand {
 	glm::vec4 curvePoints[NUM_CURVE_POINTS];
 	glm::vec4 curveVels[NUM_CURVE_POINTS];
 	glm::vec4 correctionVecs[NUM_CURVE_POINTS];
+	//float len;
 
-	float len;
-
-	
     static VkVertexInputBindingDescription getBindingDescription() {
         VkVertexInputBindingDescription bindingDescription = {};
         bindingDescription.binding = 0;
@@ -28,8 +26,8 @@ struct Strand {
         return bindingDescription;
     }
 
-	static std::array<VkVertexInputAttributeDescription, 3 * NUM_CURVE_POINTS + 1> getAttributeDescriptions() {
-		std::array<VkVertexInputAttributeDescription, 3 * NUM_CURVE_POINTS + 1> attributeDescriptions = {};
+	static std::array<VkVertexInputAttributeDescription, 3 * NUM_CURVE_POINTS> getAttributeDescriptions() {
+		std::array<VkVertexInputAttributeDescription, 3 * NUM_CURVE_POINTS> attributeDescriptions = {};
 		for (int i = 0; i < NUM_CURVE_POINTS; ++i) {
 			attributeDescriptions[i].binding = 0;
 			attributeDescriptions[i].location = i;
@@ -50,10 +48,10 @@ struct Strand {
 			attributeDescriptions[i].offset = offsetof(Strand, correctionVecs[i]);
 		}
 
-		attributeDescriptions[3 * NUM_CURVE_POINTS].binding = 0;
+		/*attributeDescriptions[3 * NUM_CURVE_POINTS].binding = 0;
 		attributeDescriptions[3 * NUM_CURVE_POINTS].location = 3 * NUM_CURVE_POINTS;
-		attributeDescriptions[3 * NUM_CURVE_POINTS].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-		attributeDescriptions[3 * NUM_CURVE_POINTS].offset = offsetof(Strand, len);
+		attributeDescriptions[3 * NUM_CURVE_POINTS].format = VK_FORMAT_R8_UINT;
+		attributeDescriptions[3 * NUM_CURVE_POINTS].offset = offsetof(Strand, len);*/
 		// TODO: Add length and other attributes to attribute descriptions if needed
 
         return attributeDescriptions;
@@ -76,8 +74,7 @@ private:
     VkDeviceMemory numStrandsBufferMemory;
 
 public:
-	// TODO: Constructor should take in geometry to sample hair positions from
-    Hair(Device* device, VkCommandPool commandPool);
+    Hair(Device* device, VkCommandPool commandPool, std::string objFilename);
     VkBuffer GetStrandsBuffer() const;
     VkBuffer GetNumStrandsBuffer() const;
     ~Hair();
