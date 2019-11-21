@@ -52,8 +52,8 @@ void main() {
 	float radius = 4.0 / (NUM_CURVE_POINTS - 1.0);
 //	float radius = strand.len / (NUM_CURVE_POINTS - 1.0);
 
-	strand.curveVels[0] = vec4(3.0 * sin(totalTime), sin(totalTime * 8.0), 0.0, 0.0);
-	strand.curvePoints[0] += deltaTime * strand.curveVels[0];
+	//strand.curveVels[0] = vec4(3.0 * sin(totalTime), sin(totalTime * 8.0), 0.0, 0.0);
+	//strand.curvePoints[0] += deltaTime * strand.curveVels[0];
 
 	float damping = 0.9995;
 	for (int i = 1; i < NUM_CURVE_POINTS; i++) {
