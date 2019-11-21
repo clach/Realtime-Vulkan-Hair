@@ -3,6 +3,9 @@
 
 #define WORKGROUP_SIZE 32
 #define NUM_CURVE_POINTS 10
+#define EPSILON 0.00001
+#define DAMPING 0.9994
+
 layout(local_size_x = WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 layout(set = 0, binding = 0) uniform CameraBufferObject {
@@ -51,80 +54,120 @@ void main() {
 	Strand strand = inStrands[threadIdx];
 	float radius = 4.0 / (NUM_CURVE_POINTS - 1.0);
 //	float radius = strand.len / (NUM_CURVE_POINTS - 1.0);
-	
-	
 
-	strand.curveVels[0] = vec4(3.0 * sin(totalTime), sin(totalTime * 8.0), 0.0, 0.0);
+	strand.curveVels[0] = vec4(3.0 * sin(totalTime), 0.0, 0.0, 0.0);
 	strand.curvePoints[0] += deltaTime * strand.curveVels[0];
 
-	vec3 sphereCenter = vec3(1.0, -0.5, 1.0);
-	float sphereRadius = 1.0;
-//	sphereCenter += deltaTime * strand.curveVels[0];
+	vec3 sphereCenter = vec3(2.0, -0.5, 1.0);
+	float sphereRadius = 2.0;
 
-	float damping = 0.9994;
+
 	for (int i = 1; i < NUM_CURVE_POINTS; i++) {
 		vec4 currentPos = strand.curvePoints[i];
 		vec4 currentVel = strand.curveVels[i];
 		vec4 parentPos = strand.curvePoints[i - 1];
+
+
+		float distToSphereCenter = distance(currentPos.xyz, sphereCenter);
+
 		vec4 force = vec4(0.0, -9.8, 0.0, 0.0);
+		if (distToSphereCenter < sphereRadius) {
+			float k = 500.0;
+			float d = abs(sphereRadius - distToSphereCenter);
+			vec3 normal = normalize(currentPos.xyz - sphereCenter);
+			force += vec4(k * d * normal, 0.0);
+		}
 		vec4 predictedPos = currentPos + deltaTime * currentVel + deltaTime * deltaTime * force;
 		
-		float epsilon = 0.00001;
 		vec4 newPos = predictedPos;
 
-		float distToSphere = distance(newPos.xyz, sphereCenter);
-		float distToParent = distance(newPos.xyz, parentPos.xyz);
-
-		
-		bool hitSphere = false;
-		vec3 normal = vec3(0.0);
-		if (distToSphere < sphereRadius) {
-			int counter = 0;
-			hitSphere = true;
-			normal = normalize(newPos.xyz - sphereCenter);
-			while ((abs(distToSphere - sphereRadius) > epsilon * 1000 || abs(distToParent - radius) > epsilon)) {
-				distToParent = distance(newPos.xyz, parentPos.xyz);
-				float distToParentSurface = distToParent - radius;
-				vec3 directionToParent = normalize(parentPos.xyz - newPos.xyz);
-
-				newPos += vec4(directionToParent, 0.0) * 0.2 * distToParentSurface;
-				
-
-				distToSphere = distance(newPos.xyz, sphereCenter);
-				float distToSurface = distToSphere - sphereRadius;
-				vec3 directionToSphere = normalize(sphereCenter - newPos.xyz);
-
-				newPos += vec4(directionToSphere, 0.0) * 0.1 * distToSurface;
-
-				distToSphere = distance(newPos.xyz, sphereCenter);
-				distToParent = distance(newPos, parentPos);
-
-				counter++;
-				if (counter > 500) {
-					break; 
-				}
-			}
-		}
-		else {
-			vec4 direction = normalize(predictedPos - parentPos);
-			newPos = parentPos + radius * direction;
-		}
-		
-	
-		
+		vec4 direction = normalize(predictedPos - parentPos);
+		newPos = parentPos + radius * direction;
 
 		vec4 newVel = (newPos - currentPos) / deltaTime;
 		strand.curvePoints[i] = newPos;
-		strand.curveVels[i] = damping * newVel;
+		strand.curveVels[i] = DAMPING * newVel;
 		strand.correctionVecs[i] = newPos - predictedPos;
-		if (hitSphere) {
-			strand.curveVels[i] -= vec4(dot(strand.curveVels[i].xyz, normal) * normal, 0.0);
-			strand.curveVels[i] *= 0.5;
-			strand.correctionVecs[i] = -0.2 * vec4(dot(strand.correctionVecs[i].xyz, normal) * normal, 0.0);
-		}
 	}
+
+
+
+
+
+//	for (int i = 1; i < NUM_CURVE_POINTS; i++) {
+//		vec4 currentPos = strand.curvePoints[i];
+//		vec4 currentVel = strand.curveVels[i];
+//		vec4 parentPos = strand.curvePoints[i - 1];
+//
+//		vec4 force = vec4(0.0, -9.8, 0.0, 0.0);
+//		vec4 predictedPos = currentPos + deltaTime * currentVel + deltaTime * deltaTime * force;
+//		
+//		vec4 newPos = predictedPos;
+//		vec4 direction = normalize(predictedPos - parentPos);
+//		newPos = parentPos + radius * direction;
+//		strand.curvePoints[i] = newPos;
+//		strand.correctionVecs[i] = currentPos;
+//	}
+
+//	for (int i = 1; i < NUM_CURVE_POINTS; i++) {
+//		vec4 currentPos = strand.correctionVecs[i];
+//		vec4 currentVel = strand.curveVels[i];
+//		vec4 parentPos = strand.curvePoints[i - 1];
+//
+//		vec4 force = vec4(0.0, -9.8, 0.0, 0.0);
+//		vec4 predictedPos = currentPos + deltaTime * currentVel + deltaTime * deltaTime * force;
+//		
+//		vec4 newPos = strand.curvePoints[i];
+////		vec4 direction = normalize(predictedPos - parentPos);
+////		newPos = parentPos + radius * direction;
+//
+//		float currPosDistToSphereCenter = distance(currentPos.xyz, sphereCenter);
+//		float predPosDistToSphereCenter = distance(newPos.xyz, sphereCenter);
+//
+//		if (predPosDistToSphereCenter < sphereRadius) {
+//			if (currPosDistToSphereCenter < sphereRadius) {
+//				vec3 normal = normalize(newPos.xyz - sphereCenter);
+//				vec3 q = sphereCenter + normal * sphereRadius;
+//
+////				for (int iter = 0; iter < 3; ++iter) {
+//					float C = dot(newPos.xyz - q, normal);
+//					newPos += vec4(-C * normal, 0.0);
+//
+////					vec4 dirFromParent = normalize(newPos - parentPos);
+////					newPos = parentPos + radius * dirFromParent;
+////				}
+//			} else {
+//				vec3 dir = normalize(newPos.xyz - currentPos.xyz);
+//				float innerSqrt = pow(2 * (dot(dir, currentPos.xyz - sphereCenter)), 2) - 4 * length(dir) * length(dir) * (pow(length(currentPos.xyz - sphereCenter), 2) - sphereRadius * sphereRadius);\
+//				if (innerSqrt >= 0) {
+//					float t = (-2 * (dot(dir, currentPos.xyz - sphereCenter)) - sqrt(innerSqrt)) / (2 * length(dir) * length(dir));
+//
+//
+//					vec3 q = currentPos.xyz + t * dir;
+//					vec3 normal = normalize(q - sphereCenter);
+//
+////				for (int iter = 0; iter < 3; ++iter) {
+//					float C = dot(newPos.xyz - q, normal);
+////					newPos += vec4(-C * normal, 0.0);
+//
+////					vec4 dirFromParent = normalize(newPos - parentPos);
+////					newPos = parentPos + radius * dirFromParent;
+////				}
+//				}
+//			}
+//		} else {
+////			vec4 direction = normalize(predictedPos - parentPos);
+////			newPos = parentPos + radius * direction;
+//		}
+//
+//		vec4 newVel = (newPos - currentPos) / deltaTime;
+//		strand.curvePoints[i] = newPos;
+//		strand.curveVels[i] = DAMPING * newVel;
+//		strand.correctionVecs[i] = newPos - predictedPos;
+//		
+//	}
 	for (int i = 1; i < NUM_CURVE_POINTS - 1; ++i) {
-		strand.curveVels[i] -= damping * strand.correctionVecs[i + 1] / deltaTime;
+		strand.curveVels[i] -= DAMPING * strand.correctionVecs[i + 1] / deltaTime;
 	}
 
 	inStrands[threadIdx] = strand;
