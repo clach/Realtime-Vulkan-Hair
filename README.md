@@ -9,3 +9,8 @@ Tested on: TBD
 
 # Milestones
 - [Pitch](presentations/ProjectPitch.pdf)
+- [Milestone 1](presentations/Milestone1.pdf)
+  - Set up project base
+  - Follicle placement from sampling mesh
+  - Physics simulation in compute shader (no collisions yet)
+  - Bezier interpolation between strand curve points in tessellation shader
