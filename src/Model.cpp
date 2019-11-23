@@ -14,6 +14,7 @@ Model::Model(Device* device, VkCommandPool commandPool, const std::vector<Vertex
     }
 
     modelBufferObject.modelMatrix = glm::mat4(1.0f);
+	modelBufferObject.invTransModelMatrix = glm::inverse(glm::mat4(1.0f));
     BufferUtils::CreateBufferFromData(device, commandPool, &modelBufferObject, sizeof(ModelBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, modelBuffer, modelBufferMemory);
 }
 

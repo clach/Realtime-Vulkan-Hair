@@ -5,7 +5,7 @@
 #include "Model.h"
 #include "iostream"
 
-constexpr static unsigned int NUM_STRANDS = 5;
+constexpr static unsigned int NUM_STRANDS = 230;
 constexpr static unsigned int NUM_CURVE_POINTS = 10;
 constexpr static float MIN_LENGTH = 6.0f;
 constexpr static float MAX_LENGTH = 8.0f;

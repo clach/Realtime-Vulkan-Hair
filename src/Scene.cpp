@@ -15,12 +15,20 @@ const std::vector<Hair*>& Scene::GetHair() const {
   return hair;
 }
 
+const std::vector<Collider>& Scene::GetColliders() const {
+	return colliders;
+}
+
 void Scene::AddModel(Model* model) {
     models.push_back(model);
 }
 
 void Scene::AddHair(Hair* hair) {
   this->hair.push_back(hair);
+}
+
+void Scene::AddCollider(Collider collider) {
+	this->colliders.push_back(collider);
 }
 
 void Scene::UpdateTime() {
@@ -38,8 +46,21 @@ VkBuffer Scene::GetTimeBuffer() const {
     return timeBuffer;
 }
 
+VkBuffer Scene::GetCollidersBuffer() const {
+	return collidersBuffer;
+}
+
+void Scene::CreateCollidersBuffer(VkCommandPool commandPool) {
+	BufferUtils::CreateBufferFromData(device, commandPool, colliders.data(), colliders.size() * sizeof(Collider), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, collidersBuffer, collidersBufferMemory);
+
+}
+
+
 Scene::~Scene() {
     vkUnmapMemory(device->GetVkDevice(), timeBufferMemory);
     vkDestroyBuffer(device->GetVkDevice(), timeBuffer, nullptr);
     vkFreeMemory(device->GetVkDevice(), timeBufferMemory, nullptr);
+
+	vkDestroyBuffer(device->GetVkDevice(), collidersBuffer, nullptr);
+	vkFreeMemory(device->GetVkDevice(), collidersBufferMemory, nullptr);
 }
