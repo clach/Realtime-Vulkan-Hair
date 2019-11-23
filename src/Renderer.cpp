@@ -242,7 +242,7 @@ void Renderer::CreateComputeDescriptorSetLayout() {
 	numStrandsLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 	numStrandsLayoutBinding.pImmutableSamplers = nullptr;
 
-	std::vector<VkDescriptorSetLayoutBinding> bindings = { inStrandsPosLayoutBinding, /*inStrandsVelLayoutBinding,*/ numStrandsLayoutBinding };
+	std::vector<VkDescriptorSetLayoutBinding> bindings = { inStrandsPosLayoutBinding, numStrandsLayoutBinding };
 
 	// Create the descriptor set layout
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {};

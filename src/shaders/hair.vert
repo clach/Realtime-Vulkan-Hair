@@ -21,5 +21,5 @@ void main() {
 		out_curvePoints[i] = model * in_curvePoints[i];
 	}
 
-	gl_Position = vec4(in_curvePoints[0].xyz, 1.0);
+	gl_Position = in_curvePoints[0];
 }

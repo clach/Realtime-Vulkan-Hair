@@ -22,7 +22,6 @@ struct Strand {
     vec4 curvePoints[NUM_CURVE_POINTS];
 	vec4 curveVels[NUM_CURVE_POINTS];
 	vec4 correctionVecs[NUM_CURVE_POINTS];
-//	float len;
 };
 
 layout(set = 2, binding = 0) buffer InStrands {

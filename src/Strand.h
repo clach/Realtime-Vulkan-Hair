@@ -3,8 +3,9 @@
 #include <glm/glm.hpp>
 #include <array>
 #include "Model.h"
+#include "iostream"
 
-constexpr static unsigned int NUM_STRANDS = 50000;
+constexpr static unsigned int NUM_STRANDS = 5;
 constexpr static unsigned int NUM_CURVE_POINTS = 10;
 constexpr static float MIN_LENGTH = 6.0f;
 constexpr static float MAX_LENGTH = 8.0f;
@@ -38,14 +39,14 @@ struct Strand {
 			attributeDescriptions[i].binding = 0;
 			attributeDescriptions[i].location = i;
 			attributeDescriptions[i].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-			attributeDescriptions[i].offset = offsetof(Strand, curveVels[i]);
+			attributeDescriptions[i].offset = offsetof(Strand, curveVels[i - NUM_CURVE_POINTS]);
 		}
 
 		for (int i = 2 * NUM_CURVE_POINTS; i < 3 * NUM_CURVE_POINTS; ++i) {
 			attributeDescriptions[i].binding = 0;
 			attributeDescriptions[i].location = i;
 			attributeDescriptions[i].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-			attributeDescriptions[i].offset = offsetof(Strand, correctionVecs[i]);
+			attributeDescriptions[i].offset = offsetof(Strand, correctionVecs[i - 2 * NUM_CURVE_POINTS]);
 		}
 
 		/*attributeDescriptions[3 * NUM_CURVE_POINTS].binding = 0;
