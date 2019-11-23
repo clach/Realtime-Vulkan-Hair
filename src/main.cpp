@@ -6,6 +6,8 @@
 #include "Scene.h"
 #include "Image.h"
 #include <iostream>
+#include "ObjLoader.h"
+
 
 Device* device;
 SwapChain* swapChain;
@@ -117,30 +119,52 @@ int main() {
         grassImageMemory
     );
 
-    float planeDim = 15.f;
-    float halfWidth = planeDim * 0.5f;
-    Model* plane = new Model(device, transferCommandPool,
-        {
-            { { -halfWidth, 0.0f, halfWidth }, { 1.0f, 0.0f, 0.0f },{ 1.0f, 0.0f } },
-            { { halfWidth, 0.0f, halfWidth }, { 0.0f, 1.0f, 0.0f },{ 0.0f, 0.0f } },
-            { { halfWidth, 0.0f, -halfWidth }, { 0.0f, 0.0f, 1.0f },{ 0.0f, 1.0f } },
-            { { -halfWidth, 0.0f, -halfWidth }, { 1.0f, 1.0f, 1.0f },{ 1.0f, 1.0f } }
-        },
-        { 0, 1, 2, 2, 3, 0 }
-    );
-    plane->SetTexture(grassImage);
+    //float planeDim = 15.f;
+    //float halfWidth = planeDim * 0.5f;
+    //Model* plane = new Model(device, transferCommandPool,
+    //    {
+    //        { { -halfWidth, 0.0f, halfWidth }, { 1.0f, 0.0f, 0.0f },{ 1.0f, 0.0f } },
+    //        { { halfWidth, 0.0f, halfWidth }, { 0.0f, 1.0f, 0.0f },{ 0.0f, 0.0f } },
+    //        { { halfWidth, 0.0f, -halfWidth }, { 0.0f, 0.0f, 1.0f },{ 0.0f, 1.0f } },
+    //        { { -halfWidth, 0.0f, -halfWidth }, { 1.0f, 1.0f, 1.0f },{ 1.0f, 1.0f } }
+    //    },
+    //    { 0, 1, 2, 2, 3, 0 }
+    //);
+    //plane->SetTexture(grassImage);
     
 	// TODO: load head model here
 	//Model* mannequin = new Model(device, transferCommandPool, {}, {});
 	// TODO: add capacity for multiple textures/normal maps/etc for a Model
 
+	std::vector<Vertex> vertices;
+	std::vector<uint32_t> indices;
+
+	ObjLoader::LoadObj("models/collisionTest.obj", vertices, indices);
+	Model* collisionSphere = new Model(device, transferCommandPool, vertices, indices);
+	collisionSphere->SetTexture(grassImage);
+
+	std::vector<Vertex> vertices2;
+	std::vector<uint32_t> indices2;
+	ObjLoader::LoadObj("models/hemisphere.obj", vertices2, indices2);
+	Model* head = new Model(device, transferCommandPool, vertices2, indices2);
+	head->SetTexture(grassImage);
+
 	Hair* hair = new Hair(device, transferCommandPool, "models/hemisphere.obj");
 
-    vkDestroyCommandPool(device->GetVkDevice(), transferCommandPool, nullptr);
+	Collider headCollider = { glm::vec3(0.0, 1.0, 0.0), 1.0 };
+	Collider testCollider = { glm::vec3(2.0, 0.0, 1.0), 1.0 };
 
     Scene* scene = new Scene(device);
-    scene->AddModel(plane);
+    scene->AddModel(collisionSphere);
+    scene->AddModel(head);
     scene->AddHair(hair);
+    scene->AddCollider(headCollider);
+    scene->AddCollider(testCollider);
+
+	scene->CreateCollidersBuffer(transferCommandPool);
+
+	vkDestroyCommandPool(device->GetVkDevice(), transferCommandPool, nullptr);
+
 
     renderer = new Renderer(device, swapChain, scene, camera);
 
@@ -163,7 +187,8 @@ int main() {
     vkFreeMemory(device->GetVkDevice(), grassImageMemory, nullptr);
 
     delete scene;
-    delete plane;
+	delete collisionSphere;
+	delete head;
     delete hair;
     delete camera;
     delete renderer;

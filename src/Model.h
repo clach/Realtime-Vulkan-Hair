@@ -9,6 +9,7 @@
 
 struct ModelBufferObject {
     glm::mat4 modelMatrix;
+	glm::mat4 invTransModelMatrix;
 };
 
 class Model {
