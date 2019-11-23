@@ -3,7 +3,7 @@
 #define NUM_CURVE_POINTS 10
 
 
-layout(vertices = 2) out;
+layout(vertices = 3) out;
 
 // TODO: Declare tessellation control shader inputs and outputs
 layout(location = 0) in vec4[][NUM_CURVE_POINTS] in_curvePoints;

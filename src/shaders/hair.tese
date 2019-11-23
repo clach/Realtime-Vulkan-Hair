@@ -31,10 +31,10 @@ vec3 func(float u, float v) {
 	int segmentFirst = int(floor(v * (NUM_CURVE_POINTS - 1)));
 	int segmentSecond = segmentFirst + 1;
 	v1 = in_curvePoints[0][segmentFirst].xyz;
-	vec3 v1_1 = in_curvePoints[1][segmentFirst].xyz;
+	//vec3 v1_1 = in_curvePoints[1][segmentFirst].xyz;
 	//vec3 v1_2 = in_curvePoints[2][segmentFirst].xyz;
 
-	float w1 = random(vec2(u, u));
+	//float w1 = random(vec2(u, u));
 	//float w2 = random(vec2(u * u, u * u));
 	//if (w1 + w2 > 0) {
 	//	w1 = 1 - w1;
@@ -45,7 +45,7 @@ vec3 func(float u, float v) {
 	//v1 = v1 * w1 + v1_1 * (1 - w1);
 
 	v2 = in_curvePoints[0][segmentSecond].xyz;
-	vec3 v2_1 = in_curvePoints[1][segmentSecond].xyz;
+	//vec3 v2_1 = in_curvePoints[1][segmentSecond].xyz;
 	//vec3 v2_2 = in_curvePoints[2][segmentSecond].xyz;
 	//v2 = v2 * w1 + v2_1 * w2 + (1 - w1 - w2) * v2_2;
 	//v2 = v2 * w1 + v2_1 * (1 - w1);
@@ -55,7 +55,7 @@ vec3 func(float u, float v) {
 		v0 = v1 + (v1 - v2);
 	} else {
 		v0 = in_curvePoints[0][segmentFirst - 1].xyz;
-		vec3 v0_1 = in_curvePoints[1][segmentFirst - 1].xyz;
+		//vec3 v0_1 = in_curvePoints[1][segmentFirst - 1].xyz;
 		//vec3 v0_2 = in_curvePoints[2][segmentFirst - 1].xyz;
 		//v0 = v0 * w1 + v0_1 * w2 + (1 - w1 - w2) * v0_2;
 		//v0 = v0 * w1 + v0_1 * (1 - w1);
@@ -67,7 +67,7 @@ vec3 func(float u, float v) {
 		v3 = v2 + (v2 - v1);
 	} else {
 		v3 = in_curvePoints[0][segmentSecond + 1].xyz;
-		vec3 v3_1 = in_curvePoints[1][segmentFirst + 1].xyz;
+		//vec3 v3_1 = in_curvePoints[1][segmentFirst + 1].xyz;
 		//vec3 v3_2 = in_curvePoints[2][segmentFirst + 1].xyz;
 		//v3 = v3 * w1 + v3_1 * w2 + (1 - w1 - w2) * v3_2;
 		//v3 = v3 * w1 + v3_1 * (1 - w1);
@@ -119,23 +119,23 @@ void main() {
 	int segmentSecond = segmentFirst + 1;
 	v1 = in_curvePoints[0][segmentFirst].xyz;
 	vec3 v1_1 = in_curvePoints[1][segmentFirst].xyz;
-	//vec3 v1_2 = in_curvePoints[2][segmentFirst].xyz;
+	vec3 v1_2 = in_curvePoints[2][segmentFirst].xyz;
 
 	float w1 = random(vec2(u, u));
-	//float w2 = random(vec2(u * u, u * u));
-	//if (w1 + w2 > 0) {
-	//	w1 = 1 - w1;
-	//	w2 = 1 - w2;
-	//}
+	float w2 = random(vec2(u * u, u * u));
+	if (w1 + w2 > 0) {
+		w1 = 1 - w1;
+		w2 = 1 - w2;
+	}
 
-	//v1 = v1 * w1 + v1_1 * w2 + (1 - w1 - w2) * v1_2;
-	v1 = v1 * w1 + v1_1 * (1 - w1);
+	v1 = v1 * w1 + v1_1 * w2 + (1 - w1 - w2) * v1_2;
+	//v1 = v1 * w1 + v1_1 * (1 - w1);
 
 	v2 = in_curvePoints[0][segmentSecond].xyz;
 	vec3 v2_1 = in_curvePoints[1][segmentSecond].xyz;
-	//vec3 v2_2 = in_curvePoints[2][segmentSecond].xyz;
-	//v2 = v2 * w1 + v2_1 * w2 + (1 - w1 - w2) * v2_2;
-	v2 = v2 * w1 + v2_1 * (1 - w1);
+	vec3 v2_2 = in_curvePoints[2][segmentSecond].xyz;
+	v2 = v2 * w1 + v2_1 * w2 + (1 - w1 - w2) * v2_2;
+	//v2 = v2 * w1 + v2_1 * (1 - w1);
 
 	if (segmentFirst == 0) {
 		// If first segment
@@ -143,9 +143,9 @@ void main() {
 	} else {
 		v0 = in_curvePoints[0][segmentFirst - 1].xyz;
 		vec3 v0_1 = in_curvePoints[1][segmentFirst - 1].xyz;
-		//vec3 v0_2 = in_curvePoints[2][segmentFirst - 1].xyz;
-		//v0 = v0 * w1 + v0_1 * w2 + (1 - w1 - w2) * v0_2;
-		v0 = v0 * w1 + v0_1 * (1 - w1);
+		vec3 v0_2 = in_curvePoints[2][segmentFirst - 1].xyz;
+		v0 = v0 * w1 + v0_1 * w2 + (1 - w1 - w2) * v0_2;
+		//v0 = v0 * w1 + v0_1 * (1 - w1);
 
 	}
 
@@ -155,9 +155,9 @@ void main() {
 	} else {
 		v3 = in_curvePoints[0][segmentSecond + 1].xyz;
 		vec3 v3_1 = in_curvePoints[1][segmentFirst + 1].xyz;
-		//vec3 v3_2 = in_curvePoints[2][segmentFirst + 1].xyz;
-		//v3 = v3 * w1 + v3_1 * w2 + (1 - w1 - w2) * v3_2;
-		v3 = v3 * w1 + v3_1 * (1 - w1);
+		vec3 v3_2 = in_curvePoints[2][segmentFirst + 1].xyz;
+		v3 = v3 * w1 + v3_1 * w2 + (1 - w1 - w2) * v3_2;
+		//v3 = v3 * w1 + v3_1 * (1 - w1);
 	}
 
 	// Create bezier control points based on 4 surrounding curve points
@@ -188,9 +188,10 @@ void main() {
 
 	vec3 pos1 = c;// + width * dir;
 
+	// single stranding it
 	vec3 pos2 = func(u, v) + width * dir;
 
 	vec3 pos = mix(pos1, pos2, 0.8);
 
-	gl_Position = camera.proj * camera.view * vec4(pos, 1.0);
+	gl_Position = camera.proj * camera.view * vec4(pos1, 1.0);
 }

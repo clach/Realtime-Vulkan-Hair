@@ -11,6 +11,15 @@ foreach(IMAGE ${IMAGES})
     configure_file(${IMAGE} ${CMAKE_CURRENT_BINARY_DIR}/images/${fname} COPYONLY)
 endforeach()
 
+file(GLOB MODELS
+    ${CMAKE_CURRENT_SOURCE_DIR}/models/*.obj
+)
+
+foreach(MODEL ${MODELS})
+    get_filename_component(fname ${MODEL} NAME)
+    configure_file(${MODEL} ${CMAKE_CURRENT_BINARY_DIR}/models/${fname} COPYONLY)
+endforeach()
+
 file(GLOB_RECURSE SHADER_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/*.vert
     ${CMAKE_CURRENT_SOURCE_DIR}/*.frag

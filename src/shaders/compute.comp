@@ -3,6 +3,7 @@
 
 #define WORKGROUP_SIZE 32
 #define NUM_CURVE_POINTS 10
+#define NUM_COLLIDERS 2
 layout(local_size_x = WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 layout(set = 0, binding = 0) uniform CameraBufferObject {
@@ -15,6 +16,15 @@ layout(set = 1, binding = 0) uniform Time {
     float totalTime;
 };
 
+struct Collider {
+	vec3 center;
+	float radius;
+};
+
+layout(set = 2, binding = 0) uniform Colliders {
+	Collider colliders[];
+};
+
 struct Strand {
     vec4 curvePoints[NUM_CURVE_POINTS];
 	vec4 curveVels[NUM_CURVE_POINTS];
@@ -22,13 +32,13 @@ struct Strand {
 //	float len;
 };
 
-layout(set = 2, binding = 0) buffer InStrands {
+layout(set = 3, binding = 0) buffer InStrands {
 	Strand inStrands[];
 };
 
 // The project is using vkCmdDrawIndirect to use a buffer as the arguments for a draw call
 // This is sort of an advanced feature so we've showed you what this buffer should look like
-layout(set = 2, binding = 1) buffer NumStrands {
+layout(set = 3, binding = 1) buffer NumStrands {
  	  uint vertexCount;   // Write the number of blades remaining here
  	  uint instanceCount; // = 1
  	  uint firstVertex;   // = 0
