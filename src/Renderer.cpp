@@ -24,6 +24,7 @@ Renderer::Renderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* c
     CreateTimeDescriptorSetLayout();
 	CreateCollidersDescriptorSetLayout();
     CreateComputeDescriptorSetLayout();
+	CreateCollisionComputeDescriptorSetLayout();
 
     CreateDescriptorPool();
 
@@ -33,6 +34,7 @@ Renderer::Renderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* c
     CreateTimeDescriptorSet();
 	CreateCollidersDescriptorSets();
     CreateComputeDescriptorSets();
+	CreateCollisionComputeDescriptorSets();
 
     CreateFrameResources();
     CreateGraphicsPipeline();
@@ -277,6 +279,38 @@ void Renderer::CreateComputeDescriptorSetLayout() {
 	}
 }
 
+void Renderer::CreateCollisionComputeDescriptorSetLayout() {
+	// NOTE: Remember this is like a class definition stating what types of information
+	// will be stored at each binding
+
+	VkDescriptorSetLayoutBinding strandsPosLayoutBinding = {};
+	strandsPosLayoutBinding.binding = 0;										// binding value in compute shader
+	strandsPosLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	strandsPosLayoutBinding.descriptorCount = 1;
+	strandsPosLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+	strandsPosLayoutBinding.pImmutableSamplers = nullptr;
+
+	// TODO: Add more bindings if needed (ex. culled strands, num strands)
+	VkDescriptorSetLayoutBinding numStrandsLayoutBinding = {};
+	numStrandsLayoutBinding.binding = 1;
+	numStrandsLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	numStrandsLayoutBinding.descriptorCount = 1;
+	numStrandsLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+	numStrandsLayoutBinding.pImmutableSamplers = nullptr;
+
+	std::vector<VkDescriptorSetLayoutBinding> bindings = { strandsPosLayoutBinding, numStrandsLayoutBinding };
+
+	// Create the descriptor set layout
+	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+	layoutInfo.pBindings = bindings.data();
+
+	if (vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &collisionComputeDescriptorSetLayout) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create descriptor set layout");
+	}
+}
+
 void Renderer::CreateDescriptorPool() {
     // Describe which descriptor types that the descriptor sets will contain
     std::vector<VkDescriptorPoolSize> poolSizes = {
@@ -293,7 +327,7 @@ void Renderer::CreateDescriptorPool() {
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , 1 },
 
 		// Hair (compute)
-		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER , static_cast<uint32_t>(2 * scene->GetHair().size()) },
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER , static_cast<uint32_t>(4 * scene->GetHair().size()) },
 
 		// Collision objects (compute)
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , 1 },
@@ -305,7 +339,7 @@ void Renderer::CreateDescriptorPool() {
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = 7; // TODO: idk what determines this number
+    poolInfo.maxSets = 9; // TODO: idk what determines this number
 
     if (vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create descriptor pool");
@@ -557,6 +591,63 @@ void Renderer::CreateComputeDescriptorSets() {
 
 		descriptorWrites[numBuffers * i + 1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptorWrites[numBuffers * i + 1].dstSet = computeDescriptorSets[i];
+		descriptorWrites[numBuffers * i + 1].dstBinding = 1;
+		descriptorWrites[numBuffers * i + 1].dstArrayElement = 0;
+		descriptorWrites[numBuffers * i + 1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		descriptorWrites[numBuffers * i + 1].descriptorCount = 1;
+		descriptorWrites[numBuffers * i + 1].pBufferInfo = &numStrandsBufferInfo;
+		descriptorWrites[numBuffers * i + 1].pImageInfo = nullptr;
+		descriptorWrites[numBuffers * i + 1].pTexelBufferView = nullptr;
+	}
+
+	// Update descriptor sets
+	vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+}
+
+void Renderer::CreateCollisionComputeDescriptorSets() {
+	// TODO: Create compute descriptor sets. 
+
+	collisionComputeDescriptorSets.resize(scene->GetHair().size());
+
+	// Describe the desciptor set
+	VkDescriptorSetLayout layouts[] = { collisionComputeDescriptorSetLayout };
+	VkDescriptorSetAllocateInfo allocInfo = {};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = descriptorPool;
+	allocInfo.descriptorSetCount = static_cast<uint32_t>(collisionComputeDescriptorSets.size());
+	allocInfo.pSetLayouts = layouts;
+
+	// Allocate descriptor sets
+	if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, collisionComputeDescriptorSets.data()) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to allocate descriptor set");
+	}
+
+	int numBuffers = 2; // TODO: set to number of buffers to compute (input, num)
+	std::vector<VkWriteDescriptorSet> descriptorWrites(numBuffers * collisionComputeDescriptorSets.size());
+
+	for (uint32_t i = 0; i < scene->GetHair().size(); ++i) {
+		VkDescriptorBufferInfo hairBufferInfo = {};
+		hairBufferInfo.buffer = scene->GetHair()[i]->GetStrandsBuffer();
+		hairBufferInfo.offset = 0;
+		hairBufferInfo.range = NUM_STRANDS * sizeof(Strand);
+
+		VkDescriptorBufferInfo numStrandsBufferInfo = {};
+		numStrandsBufferInfo.buffer = scene->GetHair()[i]->GetNumStrandsBuffer();
+		numStrandsBufferInfo.offset = 0;
+		numStrandsBufferInfo.range = sizeof(StrandDrawIndirect);
+
+		descriptorWrites[numBuffers * i + 0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[numBuffers * i + 0].dstSet = collisionComputeDescriptorSets[i];
+		descriptorWrites[numBuffers * i + 0].dstBinding = 0;
+		descriptorWrites[numBuffers * i + 0].dstArrayElement = 0;
+		descriptorWrites[numBuffers * i + 0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		descriptorWrites[numBuffers * i + 0].descriptorCount = 1;
+		descriptorWrites[numBuffers * i + 0].pBufferInfo = &hairBufferInfo;
+		descriptorWrites[numBuffers * i + 0].pImageInfo = nullptr;
+		descriptorWrites[numBuffers * i + 0].pTexelBufferView = nullptr;
+
+		descriptorWrites[numBuffers * i + 1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[numBuffers * i + 1].dstSet = collisionComputeDescriptorSets[i];
 		descriptorWrites[numBuffers * i + 1].dstBinding = 1;
 		descriptorWrites[numBuffers * i + 1].dstArrayElement = 0;
 		descriptorWrites[numBuffers * i + 1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -919,14 +1010,26 @@ void Renderer::CreateHairPipeline() {
 void Renderer::CreateComputePipeline() {
     // Set up programmable shaders
     VkShaderModule computeShaderModule = ShaderModule::Create("shaders/compute.comp.spv", logicalDevice);
+	VkShaderModule collisionComputeShaderModule = ShaderModule::Create("shaders/compute.comp.spv", logicalDevice);
+
 
     VkPipelineShaderStageCreateInfo computeShaderStageInfo = {};
     computeShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     computeShaderStageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-    computeShaderStageInfo.module = computeShaderModule;
+	computeShaderStageInfo.module = computeShaderModule;
     computeShaderStageInfo.pName = "main";
 
-    std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, timeDescriptorSetLayout, collidersDescriptorSetLayout, computeDescriptorSetLayout };
+	VkPipelineShaderStageCreateInfo collisionComputeShaderStageInfo = {};
+	collisionComputeShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	collisionComputeShaderStageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+	collisionComputeShaderStageInfo.module = collisionComputeShaderModule;
+	collisionComputeShaderStageInfo.pName = "main";
+
+
+	VkPipelineShaderStageCreateInfo shaderStages[] = { computeShaderStageInfo, collisionComputeShaderStageInfo };
+
+
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, timeDescriptorSetLayout, collidersDescriptorSetLayout, computeDescriptorSetLayout, collisionComputeDescriptorSetLayout };
 
     // Create pipeline layout
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
@@ -941,21 +1044,38 @@ void Renderer::CreateComputePipeline() {
     }
 
     // Create compute pipeline
-    VkComputePipelineCreateInfo pipelineInfo = {};
-    pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    pipelineInfo.stage = computeShaderStageInfo;
-    pipelineInfo.layout = computePipelineLayout;
-    pipelineInfo.pNext = nullptr;
-    pipelineInfo.flags = 0;
-    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-    pipelineInfo.basePipelineIndex = -1;
+    VkComputePipelineCreateInfo computePipelineInfo = {};
+    computePipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+	computePipelineInfo.stage = computeShaderStageInfo;
+    computePipelineInfo.layout = computePipelineLayout;
+    computePipelineInfo.pNext = nullptr;
+    computePipelineInfo.flags = 0;
+    computePipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+    computePipelineInfo.basePipelineIndex = -1;
 
-    if (vkCreateComputePipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &computePipeline) != VK_SUCCESS) {
+	VkComputePipelineCreateInfo collisionPipelineInfo = {};
+	collisionPipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+	collisionPipelineInfo.stage = collisionComputeShaderStageInfo;
+	collisionPipelineInfo.layout = computePipelineLayout;
+	collisionPipelineInfo.pNext = nullptr;
+	collisionPipelineInfo.flags = 0;
+	collisionPipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+	collisionPipelineInfo.basePipelineIndex = -1;
+
+	std::vector<VkComputePipelineCreateInfo> createInfos = { computePipelineInfo, collisionPipelineInfo };
+
+    if (vkCreateComputePipelines(logicalDevice, VK_NULL_HANDLE, 1, &createInfos.data()[0], nullptr, &computePipeline) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create compute pipeline");
     }
 
+	/*if (vkCreateComputePipelines(logicalDevice, VK_NULL_HANDLE, 1, &createInfos.data()[1], nullptr, &computePipeline) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create compute pipeline");
+	}*/
+
     // No need for shader modules anymore
     vkDestroyShaderModule(logicalDevice, computeShaderModule, nullptr);
+	vkDestroyShaderModule(logicalDevice, collisionComputeShaderModule, nullptr);
+
 }
 
 void Renderer::CreateFrameResources() {
@@ -1097,10 +1217,18 @@ void Renderer::RecordComputeCommandBuffer() {
 
 	// TODO: for each group of strands, bind its descriptor set and dispatch
 	// Check these function inputs.  Uncomment dispatch when ready to run compute shader.
+	int count = 0;
 	for (int i = 0; i < scene->GetHair().size(); ++i) {
 		vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 3 + i, 1, &computeDescriptorSets[i], 0, nullptr);
-		vkCmdDispatch(computeCommandBuffer, (int)ceil((NUM_STRANDS + WORKGROUP_SIZE - 1) / WORKGROUP_SIZE), 1, 1);
+		//vkCmdDispatch(computeCommandBuffer, (int)ceil((NUM_STRANDS + WORKGROUP_SIZE - 1) / WORKGROUP_SIZE), 1, 1);
+		count = 3 + i;
 	}
+	for (int i = 0; i < scene->GetHair().size(); ++i) {
+		vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, count + 1 + i, 1, &collisionComputeDescriptorSets[i], 0, nullptr);
+	}
+	vkCmdDispatch(computeCommandBuffer, (int)ceil((NUM_STRANDS + WORKGROUP_SIZE - 1) / WORKGROUP_SIZE), 1, 1);
+
+	
 
     // ~ End recording ~
     if (vkEndCommandBuffer(computeCommandBuffer) != VK_SUCCESS) {
@@ -1282,6 +1410,8 @@ Renderer::~Renderer() {
     vkDestroyDescriptorSetLayout(logicalDevice, timeDescriptorSetLayout, nullptr);
     vkDestroyDescriptorSetLayout(logicalDevice, collidersDescriptorSetLayout, nullptr);
 	vkDestroyDescriptorSetLayout(logicalDevice, hairDescriptorSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(logicalDevice, computeDescriptorSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(logicalDevice, collisionComputeDescriptorSetLayout, nullptr);
 
     vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
 

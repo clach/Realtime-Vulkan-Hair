@@ -1,0 +1,65 @@
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
+
+#define WORKGROUP_SIZE 32
+#define NUM_CURVE_POINTS 10
+
+layout(local_size_x = WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform CameraBufferObject {
+    mat4 view;
+    mat4 proj;
+} camera;
+
+layout(set = 1, binding = 0) uniform Time {
+    float deltaTime;
+    float totalTime;
+};
+
+struct Collider {
+	vec3 center;
+	float radius;
+};
+
+// TODO: pass number of colliders?
+layout(set = 2, binding = 0) uniform Colliders {
+	Collider colliders[];
+};
+
+struct Strand {
+    vec4 curvePoints[NUM_CURVE_POINTS];
+	vec4 curveVels[NUM_CURVE_POINTS];
+	vec4 correctionVecs[NUM_CURVE_POINTS];
+};
+
+layout(set = 3, binding = 0) buffer InStrands {
+	Strand inStrands[];
+};
+
+// The project is using vkCmdDrawIndirect to use a buffer as the arguments for a draw call
+// This is sort of an advanced feature so we've showed you what this buffer should look like
+layout(set = 3, binding = 1) buffer NumStrands {
+ 	  uint vertexCount;   // Write the number of blades remaining here
+ 	  uint instanceCount; // = 1
+ 	  uint firstVertex;   // = 0
+	  uint firstInstance; // = 0
+} numStrands;
+
+void main() {
+	// Reset the number of blades to 0
+	uint threadIdx = gl_GlobalInvocationID.x;
+	if (threadIdx == 0) {
+		numStrands.vertexCount = 0;
+	}
+	barrier(); // Wait till all threads reach this point
+	
+	Strand strand = inStrands[threadIdx];
+
+	for (int i = 0; i < NUM_CURVE_POINTS; ++i) {
+		strand.curvePoints[i] += vec4(0.0, 0.5, 0.0, 0.0);
+	}
+	
+	inStrands[threadIdx] = strand;
+
+	atomicAdd(numStrands.vertexCount, 1);
+}

@@ -92,7 +92,7 @@ void main() {
 			float d = abs(sphereRadius - distToSphereCenter); // depth of curve point inside the collision object
 			vec3 normal = normalize(currentPos.xyz - sphereCenter); // normal of collision surface at point of collision
 			force += vec3(k * d * normal); // penalty spring force
-			extraDamp = max(1.0 - d, 0.999); // add extra damping proprotional to depth
+			extraDamp = max(1.0 - 0.8 * d, 0.9994); // add extra damping proprotional to depth
 		} 
 
 		// Get predicted position based on position, velocity, and force

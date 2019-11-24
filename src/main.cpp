@@ -119,23 +119,6 @@ int main() {
         grassImageMemory
     );
 
-    //float planeDim = 15.f;
-    //float halfWidth = planeDim * 0.5f;
-    //Model* plane = new Model(device, transferCommandPool,
-    //    {
-    //        { { -halfWidth, 0.0f, halfWidth }, { 1.0f, 0.0f, 0.0f },{ 1.0f, 0.0f } },
-    //        { { halfWidth, 0.0f, halfWidth }, { 0.0f, 1.0f, 0.0f },{ 0.0f, 0.0f } },
-    //        { { halfWidth, 0.0f, -halfWidth }, { 0.0f, 0.0f, 1.0f },{ 0.0f, 1.0f } },
-    //        { { -halfWidth, 0.0f, -halfWidth }, { 1.0f, 1.0f, 1.0f },{ 1.0f, 1.0f } }
-    //    },
-    //    { 0, 1, 2, 2, 3, 0 }
-    //);
-    //plane->SetTexture(grassImage);
-    
-	// TODO: load head model here
-	//Model* mannequin = new Model(device, transferCommandPool, {}, {});
-	// TODO: add capacity for multiple textures/normal maps/etc for a Model
-
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
 

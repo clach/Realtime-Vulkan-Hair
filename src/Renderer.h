@@ -21,6 +21,7 @@ public:
     void CreateTimeDescriptorSetLayout();
     void CreateCollidersDescriptorSetLayout();
     void CreateComputeDescriptorSetLayout();
+    void CreateCollisionComputeDescriptorSetLayout();
 
     void CreateDescriptorPool();
 
@@ -30,6 +31,7 @@ public:
     void CreateTimeDescriptorSet();
     void CreateCollidersDescriptorSets();
     void CreateComputeDescriptorSets();
+    void CreateCollisionComputeDescriptorSets();
 
     void CreateGraphicsPipeline();
     void CreateHairPipeline();
@@ -62,6 +64,7 @@ private:
 	VkDescriptorSetLayout timeDescriptorSetLayout;
 	VkDescriptorSetLayout collidersDescriptorSetLayout;
 	VkDescriptorSetLayout computeDescriptorSetLayout;
+	VkDescriptorSetLayout collisionComputeDescriptorSetLayout;
     
     VkDescriptorPool descriptorPool;
 
@@ -71,6 +74,7 @@ private:
     VkDescriptorSet timeDescriptorSet;
 	VkDescriptorSet collidersDescriptorSets;
 	std::vector<VkDescriptorSet> computeDescriptorSets;
+	std::vector<VkDescriptorSet> collisionComputeDescriptorSets;
 
     VkPipelineLayout graphicsPipelineLayout;
     VkPipelineLayout hairPipelineLayout;
