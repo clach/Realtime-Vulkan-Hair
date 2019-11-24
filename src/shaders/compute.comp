@@ -66,7 +66,7 @@ void main() {
 //	float radius = strand.len / (NUM_CURVE_POINTS - 1.0);
 
 	// Temporarily controls motion of root curve points
-	strand.curveVels[0] = vec4(3.0 * sin(totalTime), 0.0, 0.0, 0.0);
+	strand.curveVels[0] = vec4(3.0 * sin(totalTime), 0.0, 0.5 * sin(totalTime), 0.0);
 	strand.curvePoints[0] += deltaTime * strand.curveVels[0];
 
 	// Temporarily hard codes collision object
@@ -93,7 +93,6 @@ void main() {
 			vec3 normal = normalize(currentPos.xyz - sphereCenter); // normal of collision surface at point of collision
 			force += vec3(k * d * normal); // penalty spring force
 			extraDamp = max(1.0 - d, 0.999); // add extra damping proprotional to depth
-//			extraDamp = 1.0;
 		} 
 
 		// Get predicted position based on position, velocity, and force
