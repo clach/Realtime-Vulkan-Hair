@@ -105,61 +105,53 @@ int main() {
         throw std::runtime_error("Failed to create command pool");
     }
 
-    VkImage grassImage;
-    VkDeviceMemory grassImageMemory;
-    Image::FromFile(device,
-        transferCommandPool,
-        "images/dirt.jpg",
-        VK_FORMAT_R8G8B8A8_UNORM,
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        grassImage,
-        grassImageMemory
-    );
+	VkImage mannequinDiffuseImage;
+	VkDeviceMemory mannequinDiffuseImageMemory;
+	Image::FromFile(device,
+		transferCommandPool,
+		"images/mannequin_diffuse.png",
+		VK_FORMAT_R8G8B8A8_UNORM,
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_SAMPLED_BIT,
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		mannequinDiffuseImage,
+		mannequinDiffuseImageMemory
+	);
 
-    //float planeDim = 15.f;
-    //float halfWidth = planeDim * 0.5f;
-    //Model* plane = new Model(device, transferCommandPool,
-    //    {
-    //        { { -halfWidth, 0.0f, halfWidth }, { 1.0f, 0.0f, 0.0f },{ 1.0f, 0.0f } },
-    //        { { halfWidth, 0.0f, halfWidth }, { 0.0f, 1.0f, 0.0f },{ 0.0f, 0.0f } },
-    //        { { halfWidth, 0.0f, -halfWidth }, { 0.0f, 0.0f, 1.0f },{ 0.0f, 1.0f } },
-    //        { { -halfWidth, 0.0f, -halfWidth }, { 1.0f, 1.0f, 1.0f },{ 1.0f, 1.0f } }
-    //    },
-    //    { 0, 1, 2, 2, 3, 0 }
-    //);
-    //plane->SetTexture(grassImage);
-    
-	// TODO: load head model here
-	//Model* mannequin = new Model(device, transferCommandPool, {}, {});
 	// TODO: add capacity for multiple textures/normal maps/etc for a Model
 
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
 
 	ObjLoader::LoadObj("models/collisionTest.obj", vertices, indices);
-	Model* collisionSphere = new Model(device, transferCommandPool, vertices, indices);
-	collisionSphere->SetTexture(grassImage);
+	Model* collisionSphere = new Model(device, transferCommandPool, vertices, indices, glm::scale(glm::vec3(0.98)));
+	collisionSphere->SetTexture(mannequinDiffuseImage);
 
-	std::vector<Vertex> vertices2;
-	std::vector<uint32_t> indices2;
-	ObjLoader::LoadObj("models/hemisphere.obj", vertices2, indices2);
-	Model* head = new Model(device, transferCommandPool, vertices2, indices2);
-	head->SetTexture(grassImage);
+	ObjLoader::LoadObj("models/mannequin.obj", vertices, indices);
+	Model* head = new Model(device, transferCommandPool, vertices, indices, glm::scale(glm::vec3(0.98)));
+	head->SetTexture(mannequinDiffuseImage);
 
-	Hair* hair = new Hair(device, transferCommandPool, "models/hemisphere.obj");
+	Hair* hair = new Hair(device, transferCommandPool, "models/mannequin_segment.obj");
 
-	Collider headCollider = { glm::vec3(0.0, 1.0, 0.0), 1.0 };
-	Collider testCollider = { glm::vec3(2.0, 0.0, 1.0), 1.0 };
+	// trans, rot, scale
+	Collider testCollider = Collider(glm::vec3(2.0, 0.0, 1.0), glm::vec3(0.0), glm::vec3(1.0));
+	Collider headCollider = Collider(glm::vec3(0.0, 2.64, 0.08), glm::vec3(-38.270, 0.0, 0.0), glm::vec3(0.844, 1.195, 1.05));
+	Collider neckCollider = Collider(glm::vec3(0.0, 1.35, -0.288), glm::vec3(18.301, 0.0, 0.0), glm::vec3(0.457, 1.0, 0.538));
+	Collider bustCollider = Collider(glm::vec3(0.0, -0.482, -0.061), glm::vec3(-17.260, 0.0, 0.0), glm::vec3(1.078, 1.467, 0.9));
+	Collider shoulderRCollider = Collider(glm::vec3(-0.698, 0.087, -0.36), glm::vec3(-20.254, 13.144, 34.5), glm::vec3(0.721, 1.0, 0.724));
+	Collider shoulderLCollider = Collider(glm::vec3(0.698, 0.087, -0.36), glm::vec3(-20.254, 13.144, -34.5), glm::vec3(0.721, 1.0, 0.724));
 
     Scene* scene = new Scene(device);
     scene->AddModel(collisionSphere);
     scene->AddModel(head);
     scene->AddHair(hair);
+	scene->AddCollider(testCollider);
     scene->AddCollider(headCollider);
-    scene->AddCollider(testCollider);
+    scene->AddCollider(neckCollider);
+    scene->AddCollider(bustCollider);
+    scene->AddCollider(shoulderRCollider);
+	scene->AddCollider(shoulderLCollider);
 
 	scene->CreateCollidersBuffer(transferCommandPool);
 
@@ -183,8 +175,8 @@ int main() {
 
     vkDeviceWaitIdle(device->GetVkDevice());
 
-    vkDestroyImage(device->GetVkDevice(), grassImage, nullptr);
-    vkFreeMemory(device->GetVkDevice(), grassImageMemory, nullptr);
+	vkDestroyImage(device->GetVkDevice(), mannequinDiffuseImage, nullptr);
+	vkFreeMemory(device->GetVkDevice(), mannequinDiffuseImageMemory, nullptr);
 
     delete scene;
 	delete collisionSphere;

@@ -2,7 +2,7 @@
 #include "BufferUtils.h"
 #include "Image.h"
 
-Model::Model(Device* device, VkCommandPool commandPool, const std::vector<Vertex> &vertices, const std::vector<uint32_t> &indices)
+Model::Model(Device* device, VkCommandPool commandPool, const std::vector<Vertex> &vertices, const std::vector<uint32_t> &indices, glm::mat4 transform)
   : device(device), vertices(vertices), indices(indices) {
 
     if (vertices.size() > 0) {
@@ -13,8 +13,8 @@ Model::Model(Device* device, VkCommandPool commandPool, const std::vector<Vertex
         BufferUtils::CreateBufferFromData(device, commandPool, this->indices.data(), indices.size() * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, indexBuffer, indexBufferMemory);
     }
 
-    modelBufferObject.modelMatrix = glm::mat4(1.0f);
-	modelBufferObject.invTransModelMatrix = glm::inverse(glm::mat4(1.0f));
+	modelBufferObject.modelMatrix = transform;
+	modelBufferObject.invTransModelMatrix = glm::inverse(transform);
     BufferUtils::CreateBufferFromData(device, commandPool, &modelBufferObject, sizeof(ModelBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, modelBuffer, modelBufferMemory);
 }
 

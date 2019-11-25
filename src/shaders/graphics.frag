@@ -11,10 +11,8 @@ layout(location = 3) in vec3 fragLightVec;
 layout(location = 0) out vec4 outColor;
 
 void main() {
-    //outColor = texture(texSampler, fragTexCoord);
-	
-	vec3 color = vec3(1.f);
-	
+    vec3 color = vec3(texture(texSampler, fragTexCoord));
+		
 	// lambert shading
 	float diffuseTerm = clamp(dot(normalize(fragNormal), normalize(fragLightVec)), 0, 1);
 	float lightIntensity = diffuseTerm + 0.2; // add some ambient lighting

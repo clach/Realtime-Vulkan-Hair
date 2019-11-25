@@ -538,7 +538,7 @@ void Renderer::CreateComputeDescriptorSets() {
 		VkDescriptorBufferInfo hairBufferInfo = {};
 		hairBufferInfo.buffer = scene->GetHair()[i]->GetStrandsBuffer();
 		hairBufferInfo.offset = 0;
-		hairBufferInfo.range = NUM_STRANDS * sizeof(Strand);
+		hairBufferInfo.range = scene->GetHair()[i]->GetNumStrands() * sizeof(Strand);
 
 		VkDescriptorBufferInfo numStrandsBufferInfo = {};
 		numStrandsBufferInfo.buffer = scene->GetHair()[i]->GetNumStrandsBuffer();
@@ -1099,7 +1099,7 @@ void Renderer::RecordComputeCommandBuffer() {
 	// Check these function inputs.  Uncomment dispatch when ready to run compute shader.
 	for (int i = 0; i < scene->GetHair().size(); ++i) {
 		vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 3 + i, 1, &computeDescriptorSets[i], 0, nullptr);
-		vkCmdDispatch(computeCommandBuffer, (int)ceil((NUM_STRANDS + WORKGROUP_SIZE - 1) / WORKGROUP_SIZE), 1, 1);
+		vkCmdDispatch(computeCommandBuffer, (int)ceil((scene->GetHair()[i]->GetNumStrands() + WORKGROUP_SIZE - 1) / WORKGROUP_SIZE), 1, 1);
 	}
 
     // ~ End recording ~
@@ -1191,19 +1191,15 @@ void Renderer::RecordCommandBuffers() {
         // Bind the grass pipeline
         vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, hairPipeline);
 
-		// TODO: Confirm this for loop
         for (uint32_t j = 0; j < scene->GetHair().size(); ++j) {
 			// NOTE: This was GetCulledBuffer() because we were drawing non culled blades.
             VkBuffer vertexBuffers[] = { scene->GetHair()[j]->GetStrandsBuffer() }; 
             VkDeviceSize offsets[] = { 0 };
-            // TODO: Uncomment this when the buffers are populated
 			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
 
-            // TODO: Bind the descriptor set for each hair strands model
 			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, hairPipelineLayout, 1, 1, &hairDescriptorSets[j], 0, nullptr);
 
             // Draw
-            // TODO: Uncomment this when the buffers are populated
 			// TODO: Do we need a num strands buffer and strandDrawIndirect like we had for blades?
 			vkCmdDrawIndirect(commandBuffers[i], scene->GetHair()[j]->GetNumStrandsBuffer(), 0, 1, sizeof(StrandDrawIndirect));
         }
@@ -1263,8 +1259,6 @@ void Renderer::Frame() {
 
 Renderer::~Renderer() {
     vkDeviceWaitIdle(logicalDevice);
-
-    // TODO: destroy any resources you created
 
     vkFreeCommandBuffers(logicalDevice, graphicsCommandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
     vkFreeCommandBuffers(logicalDevice, computeCommandPool, 1, &computeCommandBuffer);

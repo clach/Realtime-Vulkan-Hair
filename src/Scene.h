@@ -1,6 +1,9 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+
+#include <glm/gtx/transform.hpp>
 #include <chrono>
 
 #include "Model.h"
@@ -13,9 +16,23 @@ struct Time {
     float totalTime = 0.0f;
 };
 
+// Collider is ellipsoid
 struct Collider {
-	glm::vec3 center;
-	float radius;
+	glm::mat4 transform;
+	glm::mat4 inv;
+	glm::mat4 invTrans;
+
+	Collider(glm::vec3 trans, glm::vec3 rot, glm::vec3 scale) {
+		glm::mat4 transMat = glm::translate(trans);
+		glm::mat4 rotXMat = glm::rotate(rot.x, glm::vec3(1.0, 0.0, 0.0));
+		glm::mat4 rotYMat = glm::rotate(rot.y, glm::vec3(0.0, 1.0, 0.0));
+		glm::mat4 rotZMat = glm::rotate(rot.z, glm::vec3(0.0, 0.0, 1.0));
+		glm::mat4 scaleMat = glm::scale(scale);
+
+		this->transform = transMat * rotZMat * rotYMat * rotXMat * scaleMat * glm::mat4(1.0);
+		this->inv = glm::inverse(this->transform);
+		this->invTrans = glm::transpose(this->inv);
+	}
 };
 
 class Scene {

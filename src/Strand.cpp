@@ -19,12 +19,12 @@ int generateRandomInt(int min, int max) {
 	return rand() % scale;
 }
 
-void GeneratePointsOnMesh(std::string filename, int numPoints, std::vector<glm::vec3>& points, std::vector<glm::vec3>& pointNormals) {
+int GeneratePointsOnMesh(std::string filename, std::vector<glm::vec3>& points, std::vector<glm::vec3>& pointNormals) {
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
 	ObjLoader::LoadObj(filename, vertices, indices);
 
-	for (int i = 0; i < numPoints; i++)
+	for (int i = 0; i < vertices.size(); i++)
 	{
 		// select vertex at random
 		//int v = generateRandomInt(0, vertices.size());
@@ -51,19 +51,20 @@ void GeneratePointsOnMesh(std::string filename, int numPoints, std::vector<glm::
 		//points.push_back(newPos);
 		//pointNormals.push_back(n);
 	}
+
+	return vertices.size();
 }
 
 
-Hair::Hair(Device* device, VkCommandPool commandPool, std::string objFilename) : Model(device, commandPool, {}, {}) {
+Hair::Hair(Device* device, VkCommandPool commandPool, std::string objFilename) : Model(device, commandPool, {}, {}, glm::mat4(1.0)) {
 	// Vector of strands
     std::vector<Strand> strands;
-    strands.reserve(NUM_STRANDS);
 
 	std::vector<glm::vec3> pointsOnMesh;
 	std::vector<glm::vec3> pointNormals;
-	GeneratePointsOnMesh(objFilename, NUM_STRANDS, pointsOnMesh, pointNormals);
+	numStrands = GeneratePointsOnMesh(objFilename, pointsOnMesh, pointNormals);
 
-	for (int i = 0; i < NUM_STRANDS; i++) {
+	for (int i = 0; i < numStrands; i++) {
 		Strand currentStrand = Strand();
 		float length = MIN_LENGTH + (generateRandomFloat() * (MAX_LENGTH - MIN_LENGTH));
 		length = 4.0;
@@ -71,7 +72,7 @@ Hair::Hair(Device* device, VkCommandPool commandPool, std::string objFilename) :
 		glm::vec3 currPoint = pointsOnMesh[i];
 		for (int j = 0; j < NUM_CURVE_POINTS; j++) {
 			currentStrand.curvePoints[j] = glm::vec4(currPoint, 1.0);
-			currentStrand.curveVels[j] = glm::vec4(0.0);
+			currentStrand.curveVels[j] = glm::vec4(0.0, 0.0, 0.0, 0.0);
 			currentStrand.correctionVecs[j] = glm::vec4(0.0);
 			currPoint += (float)(length / (NUM_CURVE_POINTS - 1.0)) * pointNormals[i];
 		}
@@ -80,12 +81,12 @@ Hair::Hair(Device* device, VkCommandPool commandPool, std::string objFilename) :
 	}
 
 	StrandDrawIndirect indirectDraw;
-	indirectDraw.vertexCount = NUM_STRANDS;
+	indirectDraw.vertexCount = numStrands;
 	indirectDraw.instanceCount = 1;
 	indirectDraw.firstVertex = 0;
 	indirectDraw.firstInstance = 0;
 
-	BufferUtils::CreateBufferFromData(device, commandPool, strands.data(), NUM_STRANDS * sizeof(Strand), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, strandsBuffer, strandsBufferMemory);
+	BufferUtils::CreateBufferFromData(device, commandPool, strands.data(), numStrands * sizeof(Strand), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, strandsBuffer, strandsBufferMemory);
 	BufferUtils::CreateBufferFromData(device, commandPool, &indirectDraw, sizeof(StrandDrawIndirect), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, numStrandsBuffer, numStrandsBufferMemory);
 }
 
@@ -95,6 +96,10 @@ VkBuffer Hair::GetStrandsBuffer() const {
 
 VkBuffer Hair::GetNumStrandsBuffer() const {
 	return numStrandsBuffer;
+}
+
+int Hair::GetNumStrands() const {
+	return numStrands;
 }
 
 Hair::~Hair() {
