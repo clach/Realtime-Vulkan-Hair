@@ -54,13 +54,13 @@ bool EllipsoidCollision(Collider c, vec3 point) {
 }
 
 vec3 GetEllipsoidNormal(Collider c, vec3 point) {
-	vec3 normal = vec3(c.inv * vec4(point, 1.0));
+	vec3 normal = vec3(c.inv * vec4(point, 0.0));
 	return normalize(vec3(c.invTrans * vec4(normal, 0.0)));
 }
 
 vec3 GetPointOnEllipsoid(Collider c, vec3 point) {
 	vec3 transformedPoint = normalize(vec3(c.inv * vec4(point, 1.0)));
-	return vec3(c.transform * vec4(transformedPoint, 0.0));
+	return vec3(c.transform * vec4(transformedPoint, 1.0));
 }
 
 void main() {
@@ -93,19 +93,22 @@ void main() {
 		
 		// Add gravity
 		vec3 force = vec3(0.0, -9.8, 0.0);
+		force += vec3(2.0 * sin(totalTime * 2.0) * cos(currentPos.y * 10.0) * sin((currentPos.y + 5.0) * 15.0), 0.0, -clamp(currentPos.y * 2.0, 0.2, 2.0));
+		float tempDamp = 1.0;
 
 		for (int j = 0; j < NUM_COLLIDERS; j++) {
 			Collider c = colliders[j];
 
 			// Add penalty force to push hair outside of collision object
 			if (EllipsoidCollision(c, currentPos.xyz)) {
-				float k = 500.0; // spring constant, as large as possible without exploding
+				float k = 800.0; // spring constant, as large as possible without exploding
 				float d = distance(GetPointOnEllipsoid(c, currentPos.xyz), currentPos.xyz);
 				vec3 normal = GetEllipsoidNormal(c, currentPos.xyz); // normal of collision surface at point of collision
 				//normal = normalize(currentPos.xyz - vec3(c.transform * vec4(0.0, 0.0, 0.0, 1.0)));
 				force += vec3(k * d * normal); // penalty spring force
 
-				extraDamp = max(1.0 - 0.5 *d, 0.9995); // add extra damping proprotional to depth
+				extraDamp = max(1.0 - 0.2 * d, 0.9999); // add extra damping proprotional to depth
+				tempDamp = 0.99;
 	//			extraDamp = 1.0;
 			} 
 		}
@@ -121,8 +124,8 @@ void main() {
 		// Update buffers and correction vectors
 		vec3 newVel = (newPos - currentPos) / deltaTime;
 		strand.curvePoints[i] = vec4(newPos, 1.0);
-		strand.curveVels[i] = vec4(DAMPING * extraDamp * newVel, 0.0); 
-		strand.correctionVecs[i] = vec4(extraDamp * (newPos - predictedPos), 0.0);
+		strand.curveVels[i] = vec4(DAMPING * tempDamp * extraDamp * newVel, 0.0); 
+		strand.correctionVecs[i] = vec4(extraDamp * tempDamp * (newPos - predictedPos), 0.0);
 	}
 
 	// Apply velocity correction term

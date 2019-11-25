@@ -72,9 +72,12 @@ Hair::Hair(Device* device, VkCommandPool commandPool, std::string objFilename) :
 		glm::vec3 currPoint = pointsOnMesh[i];
 		for (int j = 0; j < NUM_CURVE_POINTS; j++) {
 			currentStrand.curvePoints[j] = glm::vec4(currPoint, 1.0);
-			currentStrand.curveVels[j] = glm::vec4(0.0, 0.0, 0.0, 0.0);
+			currentStrand.curveVels[j] = glm::vec4(0.0, 0.0, -10.0, 0.0);
 			currentStrand.correctionVecs[j] = glm::vec4(0.0);
-			currPoint += (float)(length / (NUM_CURVE_POINTS - 1.0)) * pointNormals[i];
+			glm::vec3 dir = pointNormals[i];
+			dir[2] -= 4.0;
+			dir[1] += 3.0;
+			currPoint += (float)(length / (NUM_CURVE_POINTS - 1.0)) * dir;
 		}
 
 		strands.push_back(currentStrand);
