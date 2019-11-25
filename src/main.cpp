@@ -125,28 +125,33 @@ int main() {
 	std::vector<uint32_t> indices;
 
 	ObjLoader::LoadObj("models/collisionTest.obj", vertices, indices);
-	Model* collisionSphere = new Model(device, transferCommandPool, vertices, indices);
+	Model* collisionSphere = new Model(device, transferCommandPool, vertices, indices, glm::scale(glm::vec3(0.98)));
 	collisionSphere->SetTexture(mannequinDiffuseImage);
 
 	ObjLoader::LoadObj("models/mannequin.obj", vertices, indices);
-	Model* head = new Model(device, transferCommandPool, vertices, indices);
+	Model* head = new Model(device, transferCommandPool, vertices, indices, glm::scale(glm::vec3(0.98)));
 	head->SetTexture(mannequinDiffuseImage);
 
 	Hair* hair = new Hair(device, transferCommandPool, "models/mannequin_segment.obj");
 
-	Collider headCollider1 = { glm::vec3(0.0, 2.8, 0.0), 0.8 };
-	Collider headCollider2 = { glm::vec3(0.0, 2.16, 0.37), 0.68 };
-	Collider headCollider3 = { glm::vec3(0.0, -0.53, 0.025), 1.5 };
-	Collider testCollider = { glm::vec3(2.0, 0.0, 1.0), 1.0 };
+	// trans, rot, scale
+	Collider testCollider = Collider(glm::vec3(2.0, 0.0, 1.0), glm::vec3(0.0), glm::vec3(1.0));
+	Collider headCollider = Collider(glm::vec3(0.0, 2.64, 0.08), glm::vec3(-38.270, 0.0, 0.0), glm::vec3(0.844, 1.195, 1.05));
+	Collider neckCollider = Collider(glm::vec3(0.0, 1.35, -0.288), glm::vec3(18.301, 0.0, 0.0), glm::vec3(0.457, 1.0, 0.538));
+	Collider bustCollider = Collider(glm::vec3(0.0, -0.482, -0.061), glm::vec3(-17.260, 0.0, 0.0), glm::vec3(1.078, 1.467, 0.9));
+	Collider shoulderRCollider = Collider(glm::vec3(-0.698, 0.087, -0.36), glm::vec3(-20.254, 13.144, 34.5), glm::vec3(0.721, 1.0, 0.724));
+	Collider shoulderLCollider = Collider(glm::vec3(0.698, 0.087, -0.36), glm::vec3(-20.254, 13.144, -34.5), glm::vec3(0.721, 1.0, 0.724));
 
     Scene* scene = new Scene(device);
     scene->AddModel(collisionSphere);
     scene->AddModel(head);
     scene->AddHair(hair);
-    scene->AddCollider(headCollider1);
-    scene->AddCollider(headCollider2);
-    scene->AddCollider(headCollider3);
-    scene->AddCollider(testCollider);
+	scene->AddCollider(testCollider);
+    scene->AddCollider(headCollider);
+    scene->AddCollider(neckCollider);
+    scene->AddCollider(bustCollider);
+    scene->AddCollider(shoulderRCollider);
+	scene->AddCollider(shoulderLCollider);
 
 	scene->CreateCollidersBuffer(transferCommandPool);
 

@@ -56,7 +56,7 @@ int GeneratePointsOnMesh(std::string filename, std::vector<glm::vec3>& points, s
 }
 
 
-Hair::Hair(Device* device, VkCommandPool commandPool, std::string objFilename) : Model(device, commandPool, {}, {}) {
+Hair::Hair(Device* device, VkCommandPool commandPool, std::string objFilename) : Model(device, commandPool, {}, {}, glm::mat4(1.0)) {
 	// Vector of strands
     std::vector<Strand> strands;
 
@@ -72,7 +72,7 @@ Hair::Hair(Device* device, VkCommandPool commandPool, std::string objFilename) :
 		glm::vec3 currPoint = pointsOnMesh[i];
 		for (int j = 0; j < NUM_CURVE_POINTS; j++) {
 			currentStrand.curvePoints[j] = glm::vec4(currPoint, 1.0);
-			currentStrand.curveVels[j] = glm::vec4(0.0);
+			currentStrand.curveVels[j] = glm::vec4(0.0, 0.0, 0.0, 0.0);
 			currentStrand.correctionVecs[j] = glm::vec4(0.0);
 			currPoint += (float)(length / (NUM_CURVE_POINTS - 1.0)) * pointNormals[i];
 		}

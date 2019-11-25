@@ -5,7 +5,7 @@
 #define NUM_CURVE_POINTS 10
 #define EPSILON 0.00001
 #define DAMPING 0.9992
-#define NUM_COLLIDERS 3
+#define NUM_COLLIDERS 6
 layout(local_size_x = WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 layout(set = 0, binding = 0) uniform CameraBufferObject {
@@ -19,8 +19,9 @@ layout(set = 1, binding = 0) uniform Time {
 };
 
 struct Collider {
-	vec3 center;
-	float radius;
+	mat4 transform;
+	mat4 inv;
+	mat4 invTrans;
 };
 
 // TODO: pass number of colliders?
@@ -46,6 +47,21 @@ layout(set = 3, binding = 1) buffer NumStrands {
  	  uint firstVertex;   // = 0
 	  uint firstInstance; // = 0
 } numStrands;
+
+bool EllipsoidCollision(Collider c, vec3 point) {
+	vec4 transformedPoint = c.inv * vec4(point, 1.0);
+	return (distance(transformedPoint.xyz, vec3(0.0)) < 1.0);
+}
+
+vec3 GetEllipsoidNormal(Collider c, vec3 point) {
+	vec3 normal = vec3(c.inv * vec4(point, 1.0));
+	return normalize(vec3(c.invTrans * vec4(normal, 0.0)));
+}
+
+vec3 GetPointOnEllipsoid(Collider c, vec3 point) {
+	vec3 transformedPoint = normalize(vec3(c.inv * vec4(point, 1.0)));
+	return vec3(c.transform * vec4(transformedPoint, 0.0));
+}
 
 void main() {
 	// Reset the number of blades to 0
@@ -78,21 +94,19 @@ void main() {
 		
 		// Add gravity
 		vec3 force = vec3(0.0, -9.8, 0.0);
-		//vec3 force = vec3(0.0, 0.0, 0.0);
 
 		for (int j = 0; j < NUM_COLLIDERS; j++) {
-			vec3 sphereCenter = colliders[j].center;
-			float sphereRadius = colliders[j].radius - 0.08;
-
-			float distToSphereCenter = distance(currentPos.xyz, sphereCenter);
+			Collider c = colliders[j];
 
 			// Add penalty force to push hair outside of collision object
-			if (distToSphereCenter < sphereRadius) {
-				float k = 1800.0; // spring constant, as large as possible without exploding
-				float d = abs(sphereRadius - distToSphereCenter); // depth of curve point inside the collision object
-				vec3 normal = normalize(currentPos.xyz - sphereCenter); // normal of collision surface at point of collision
+			if (EllipsoidCollision(c, currentPos.xyz)) {
+				float k = 500.0; // spring constant, as large as possible without exploding
+				float d = distance(GetPointOnEllipsoid(c, currentPos.xyz), currentPos.xyz);
+				vec3 normal = GetEllipsoidNormal(c, currentPos.xyz); // normal of collision surface at point of collision
+				//normal = normalize(currentPos.xyz - vec3(c.transform * vec4(0.0, 0.0, 0.0, 1.0)));
 				force += vec3(k * d * normal); // penalty spring force
-				extraDamp = max(1.0 - d, 0.999); // add extra damping proprotional to depth
+
+				extraDamp = max(1.0 - 0.5 *d, 0.9995); // add extra damping proprotional to depth
 	//			extraDamp = 1.0;
 			} 
 		}
