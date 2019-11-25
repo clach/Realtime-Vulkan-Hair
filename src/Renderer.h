@@ -79,10 +79,12 @@ private:
     VkPipelineLayout graphicsPipelineLayout;
     VkPipelineLayout hairPipelineLayout;
     VkPipelineLayout computePipelineLayout;
+	VkPipelineLayout collisionComputePipelineLayout;
 
     VkPipeline graphicsPipeline;
     VkPipeline hairPipeline;
     VkPipeline computePipeline;
+	VkPipeline collisionComputePipeline;
 
     std::vector<VkImageView> imageViews;
     VkImage depthImage;

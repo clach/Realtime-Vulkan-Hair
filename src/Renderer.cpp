@@ -1010,7 +1010,7 @@ void Renderer::CreateHairPipeline() {
 void Renderer::CreateComputePipeline() {
     // Set up programmable shaders
     VkShaderModule computeShaderModule = ShaderModule::Create("shaders/compute.comp.spv", logicalDevice);
-	VkShaderModule collisionComputeShaderModule = ShaderModule::Create("shaders/compute.comp.spv", logicalDevice);
+	VkShaderModule collisionComputeShaderModule = ShaderModule::Create("shaders/collisionCompute.comp.spv", logicalDevice);
 
 
     VkPipelineShaderStageCreateInfo computeShaderStageInfo = {};
@@ -1019,17 +1019,17 @@ void Renderer::CreateComputePipeline() {
 	computeShaderStageInfo.module = computeShaderModule;
     computeShaderStageInfo.pName = "main";
 
-	VkPipelineShaderStageCreateInfo collisionComputeShaderStageInfo = {};
+	/*VkPipelineShaderStageCreateInfo collisionComputeShaderStageInfo = {};
 	collisionComputeShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	collisionComputeShaderStageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
 	collisionComputeShaderStageInfo.module = collisionComputeShaderModule;
-	collisionComputeShaderStageInfo.pName = "main";
+	collisionComputeShaderStageInfo.pName = "main";*/
 
 
-	VkPipelineShaderStageCreateInfo shaderStages[] = { computeShaderStageInfo, collisionComputeShaderStageInfo };
+	//VkPipelineShaderStageCreateInfo shaderStages[] = { computeShaderStageInfo, collisionComputeShaderStageInfo };
 
 
-    std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, timeDescriptorSetLayout, collidersDescriptorSetLayout, computeDescriptorSetLayout, collisionComputeDescriptorSetLayout };
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, timeDescriptorSetLayout, collidersDescriptorSetLayout, computeDescriptorSetLayout };
 
     // Create pipeline layout
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
@@ -1043,6 +1043,20 @@ void Renderer::CreateComputePipeline() {
         throw std::runtime_error("Failed to create pipeline layout");
     }
 
+	//std::vector<VkDescriptorSetLayout> collisionDescriptorSetLayouts = { cameraDescriptorSetLayout, timeDescriptorSetLayout, collidersDescriptorSetLayout, collisionComputeDescriptorSetLayout };
+
+	//// Create pipeline layout
+	//VkPipelineLayoutCreateInfo collisionPipelineLayoutInfo = {};
+	//collisionPipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	//collisionPipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(collisionDescriptorSetLayouts.size());
+	//collisionPipelineLayoutInfo.pSetLayouts = collisionDescriptorSetLayouts.data();
+	//collisionPipelineLayoutInfo.pushConstantRangeCount = 0;
+	//collisionPipelineLayoutInfo.pPushConstantRanges = 0;
+
+	//if (vkCreatePipelineLayout(logicalDevice, &collisionPipelineLayoutInfo, nullptr, &collisionComputePipelineLayout) != VK_SUCCESS) {
+	//	throw std::runtime_error("Failed to create pipeline layout");
+	//}
+
     // Create compute pipeline
     VkComputePipelineCreateInfo computePipelineInfo = {};
     computePipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
@@ -1052,26 +1066,31 @@ void Renderer::CreateComputePipeline() {
     computePipelineInfo.flags = 0;
     computePipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     computePipelineInfo.basePipelineIndex = -1;
-
+/*
 	VkComputePipelineCreateInfo collisionPipelineInfo = {};
 	collisionPipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
 	collisionPipelineInfo.stage = collisionComputeShaderStageInfo;
-	collisionPipelineInfo.layout = computePipelineLayout;
+	collisionPipelineInfo.layout = collisionComputePipelineLayout;
 	collisionPipelineInfo.pNext = nullptr;
 	collisionPipelineInfo.flags = 0;
 	collisionPipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-	collisionPipelineInfo.basePipelineIndex = -1;
+	collisionPipelineInfo.basePipelineIndex = -1;*/
 
-	std::vector<VkComputePipelineCreateInfo> createInfos = { computePipelineInfo, collisionPipelineInfo };
+	std::vector<VkComputePipelineCreateInfo> createInfos = { computePipelineInfo };
+	//std::vector<VkPipeline> pipelines = { computePipeline };
+	VkPipeline pipelines[1];
+	pipelines[0] = computePipeline;
 
-    if (vkCreateComputePipelines(logicalDevice, VK_NULL_HANDLE, 1, &createInfos.data()[0], nullptr, &computePipeline) != VK_SUCCESS) {
+
+
+	if (vkCreateComputePipelines(logicalDevice, VK_NULL_HANDLE, 1, createInfos.data(), nullptr, pipelines) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create compute pipeline");
     }
 
 	/*if (vkCreateComputePipelines(logicalDevice, VK_NULL_HANDLE, 1, &createInfos.data()[1], nullptr, &computePipeline) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create compute pipeline");
-	}*/
-
+	}
+*/
     // No need for shader modules anymore
     vkDestroyShaderModule(logicalDevice, computeShaderModule, nullptr);
 	vkDestroyShaderModule(logicalDevice, collisionComputeShaderModule, nullptr);
@@ -1205,15 +1224,19 @@ void Renderer::RecordComputeCommandBuffer() {
 
     // Bind to the compute pipeline
     vkCmdBindPipeline(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline);
+	//vkCmdBindPipeline(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, collisionComputePipeline);
 
     // Bind camera descriptor set
     vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 0, 1, &cameraDescriptorSet, 0, nullptr);
+	//vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, collisionComputePipelineLayout, 0, 1, &cameraDescriptorSet, 0, nullptr);
 
     // Bind descriptor set for time uniforms
     vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 1, 1, &timeDescriptorSet, 0, nullptr);
+    //vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, collisionComputePipelineLayout, 1, 1, &timeDescriptorSet, 0, nullptr);
 
 	// Bind descriptor set for collider uniforms
     vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 2, 1, &collidersDescriptorSets, 0, nullptr);
+    //vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, collisionComputePipelineLayout, 2, 1, &collidersDescriptorSets, 0, nullptr);
 
 	// TODO: for each group of strands, bind its descriptor set and dispatch
 	// Check these function inputs.  Uncomment dispatch when ready to run compute shader.
@@ -1224,7 +1247,7 @@ void Renderer::RecordComputeCommandBuffer() {
 		count = 3 + i;
 	}
 	for (int i = 0; i < scene->GetHair().size(); ++i) {
-		vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, count + 1 + i, 1, &collisionComputeDescriptorSets[i], 0, nullptr);
+		//vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, collisionComputePipelineLayout, count + 1 + i, 1, &collisionComputeDescriptorSets[i], 0, nullptr);
 	}
 	vkCmdDispatch(computeCommandBuffer, (int)ceil((NUM_STRANDS + WORKGROUP_SIZE - 1) / WORKGROUP_SIZE), 1, 1);
 
@@ -1400,10 +1423,12 @@ Renderer::~Renderer() {
     vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
     vkDestroyPipeline(logicalDevice, hairPipeline, nullptr);
     vkDestroyPipeline(logicalDevice, computePipeline, nullptr);
+    //vkDestroyPipeline(logicalDevice, collisionComputePipeline, nullptr);
 
     vkDestroyPipelineLayout(logicalDevice, graphicsPipelineLayout, nullptr);
     vkDestroyPipelineLayout(logicalDevice, hairPipelineLayout, nullptr);
     vkDestroyPipelineLayout(logicalDevice, computePipelineLayout, nullptr);
+    vkDestroyPipelineLayout(logicalDevice, collisionComputePipelineLayout, nullptr);
 
     vkDestroyDescriptorSetLayout(logicalDevice, cameraDescriptorSetLayout, nullptr);
     vkDestroyDescriptorSetLayout(logicalDevice, modelDescriptorSetLayout, nullptr);
