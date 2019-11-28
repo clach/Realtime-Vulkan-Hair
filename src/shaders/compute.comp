@@ -82,8 +82,8 @@ void main() {
 //	float radius = strand.len / (NUM_CURVE_POINTS - 1.0);
 
 	// Temporarily controls motion of root curve points
-	//strand.curveVels[0] = vec4(3.0 * sin(totalTime), 0.0, 0.0, 0.0);
-	//strand.curvePoints[0] += deltaTime * strand.curveVels[0];
+//	strand.curveVels[0] = vec4(3.0 * sin(totalTime), 0.0, 0.0, 0.0);
+//	strand.curvePoints[0] += deltaTime * strand.curveVels[0];
 	float extraDamp = 1.0; // additional damping to track if a parent curve point hit a collision object
 
 	for (int i = 1; i < NUM_CURVE_POINTS; i++) {
@@ -101,14 +101,14 @@ void main() {
 
 			// Add penalty force to push hair outside of collision object
 			if (EllipsoidCollision(c, currentPos.xyz)) {
-				float k = 800.0; // spring constant, as large as possible without exploding
+				float k = 1200.0; // spring constant, as large as possible without exploding
 				float d = distance(GetPointOnEllipsoid(c, currentPos.xyz), currentPos.xyz);
 				vec3 normal = GetEllipsoidNormal(c, currentPos.xyz); // normal of collision surface at point of collision
 				//normal = normalize(currentPos.xyz - vec3(c.transform * vec4(0.0, 0.0, 0.0, 1.0)));
 				force += vec3(k * d * normal); // penalty spring force
 
 				extraDamp = max(1.0 - 0.2 * d, 0.9999); // add extra damping proprotional to depth
-				tempDamp = 0.99;
+				tempDamp = 0.995;
 	//			extraDamp = 1.0;
 			} 
 		}
