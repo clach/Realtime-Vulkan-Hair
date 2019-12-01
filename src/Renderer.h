@@ -44,6 +44,9 @@ public:
 
     void Frame();
 
+	VkDescriptorPool GetDescriptorPool();
+	VkRenderPass GetRenderPass();
+
 private:
     Device* device;
     VkDevice logicalDevice;

@@ -7,12 +7,21 @@
 #include "Image.h"
 #include <iostream>
 #include "ObjLoader.h"
-
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_vulkan.h"
+#include "imgui/imgui_impl_glfw.h"
 
 Device* device;
 SwapChain* swapChain;
 Renderer* renderer;
 Camera* camera;
+
+#define VK_CHECK(expr_) \
+	do { \
+		VkResult result_ = expr_; \
+		if (result_ != 0) \
+			CheckFailed(result_, __FILE__, __LINE__, #expr_); \
+	} while (0)
 
 namespace {
     void resizeCallback(GLFWwindow* window, int width, int height) {
@@ -66,6 +75,43 @@ namespace {
             previousY = yPosition;
         }
     }
+}
+
+void CheckFailed(VkResult result, const char* file, int line, const char* expr)
+{
+#ifdef _WIN32
+	char buffer[1024];
+	_snprintf_s(buffer, sizeof(buffer), "%s:%d %s returned %d\n", file, line, expr, result);
+	OutputDebugStringA(buffer);
+	__debugbreak();
+#else
+	fprintf(stderr, "%s:%d %s returned %d\n", file, line, expr, result);
+	__builtin_trap();
+#endif
+}
+
+void InitImGuiFonts(VkDevice& device, ImGui_ImplVulkanH_Window& window)
+{
+	ImGui_ImplVulkanH_Frame* fd = &window.Frames[window.FrameIndex];
+
+	VK_CHECK(vkResetCommandPool(device, fd->CommandPool, 0));
+
+	VkCommandBufferBeginInfo cbbi = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+	cbbi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	VK_CHECK(vkBeginCommandBuffer(fd->CommandBuffer, &cbbi));
+
+	ImGui_ImplVulkan_CreateFontsTexture(fd->CommandBuffer);
+
+	VK_CHECK(vkEndCommandBuffer(fd->CommandBuffer));
+
+	VkSubmitInfo si = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+	si.commandBufferCount = 1;
+	si.pCommandBuffers = &fd->CommandBuffer;
+	//VK_CHECK(vkQueueSubmit(vulkan.queue, 1, &si, VK_NULL_HANDLE));
+
+	//VK_CHECK(vkQueueWaitIdle(vulkan.queue));
+
+	ImGui_ImplVulkan_DestroyFontUploadObjects();
 }
 
 int main() {
@@ -157,12 +203,34 @@ int main() {
 
 	vkDestroyCommandPool(device->GetVkDevice(), transferCommandPool, nullptr);
 
-
     renderer = new Renderer(device, swapChain, scene, camera);
 
     glfwSetWindowSizeCallback(GetGLFWWindow(), resizeCallback);
     glfwSetMouseButtonCallback(GetGLFWWindow(), mouseDownCallback);
     glfwSetCursorPosCallback(GetGLFWWindow(), mouseMoveCallback);
+
+
+
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO();
+	(void)io;
+	ImGui::StyleColorsDark();
+	ImGui_ImplGlfw_InitForVulkan(GetGLFWWindow(), true);
+
+	ImGui_ImplVulkan_InitInfo initInfo = {};
+	initInfo.Instance = instance->GetVkInstance();
+	initInfo.PhysicalDevice = instance->GetPhysicalDevice();
+	initInfo.Device = device->GetVkDevice();
+	initInfo.QueueFamily = device->GetInstance()->GetQueueFamilyIndices()[QueueFlags::Graphics];
+	initInfo.Queue = device->GetQueue(QueueFlags::Graphics);
+	initInfo.PipelineCache = VK_NULL_HANDLE;
+	initInfo.DescriptorPool = renderer->GetDescriptorPool();
+	initInfo.Allocator = nullptr;
+	initInfo.MinImageCount = 2;
+	initInfo.ImageCount = swapChain->GetCount();
+	initInfo.CheckVkResultFn = VK_NULL_HANDLE;
+	//ImGui_ImplVulkan_Init(&initInfo, renderer->GetRenderPass());
 
     while (!ShouldQuit()) {
         glfwPollEvents();

@@ -1257,6 +1257,14 @@ void Renderer::Frame() {
     }
 }
 
+VkDescriptorPool Renderer::GetDescriptorPool() {
+	return descriptorPool;
+}
+
+VkRenderPass Renderer::GetRenderPass() {
+	return renderPass;
+}
+
 Renderer::~Renderer() {
     vkDeviceWaitIdle(logicalDevice);
 
