@@ -3,6 +3,7 @@
 
 #define PI 3.14159265359
 #define PI_OVER_2 1.57079632679
+#define RAD_TO_DEG 57.2957795131
 
 layout(location = 0) in vec2 in_uv;
 layout(location = 1) in vec3 in_u;
@@ -14,7 +15,7 @@ layout(location = 5) in vec3 in_lightDir;
 layout(location = 0) out vec4 outColor;
 
 float angleBetweenVectorAndPlane(vec3 vec, vec3 n) {
-	float angle = acos(dot(vec, n) / length(vec) * length(n));
+	float angle = acos(dot(vec, n) / (length(vec) * length(n)));
 	if (angle < PI_OVER_2) {
 		angle = PI_OVER_2 - angle;
 	} else {
@@ -30,29 +31,39 @@ float gaussian(float sigma, float x) {
 	//return ((1.0 / sqrt(2 * PI) * sigma) * exp(-(x - mu) * (x - mu) / 2 * sigma * sigma));
 }
 
+float schlicks(float n1, float n2, float theta) {
+	float R0 = ((n1 - n2) / (n1 + n2)) * ((n1 - n2) / (n1 + n2));
+	return R0 + (1.f - R0) * pow(1.f - cos(theta), 5);
+}
+
 // Fresnel equation
-float F(float n1, float n2, float gamma) {
-	return 1.f;
-	// ???????
+float F(float n_p, float n_pp, float gamma) {
+	// TODO: not schlicks???
+	return schlicks(n_p, n_pp, gamma);
 }
 
 // should it be h or gamma_t?
 // accounts for volume absoprtion
-float T(float sigma, float gamma_t) {
-	return exp(-2.f * sigma * (1.f + cos(gamma_t)));
+vec3 T(vec3 sigma, float gamma_t) {
+	return exp(-2.f * sigma * cos(gamma_t));
 }
 
-float A(float p, float h) {
-	float n1;
-	float n2;
-	float gamma_i;
-	float gamma_t;
-	float sigma_a_prime;
+vec3 A(float p, float h, float n, vec3 sigma_a) {
+	float theta_t = 0.f; // TODO?
+
+	float gamma_i = asin(h);
+
+	float n_p = sqrt(n * n - sin(gamma_i) * sin(gamma_i)) / cos(gamma_i);
+	float n_pp = n * n * cos(gamma_i) / sqrt(n * n - sin(gamma_i) * sin(gamma_i));
+
+	float gamma_t = asin(h / n_p);
 	
 	if (p == 0) {
-		return F(n1, n2, gamma_i); 
+		return F(n_p, n_pp, gamma_i) * vec3(1.f); 
 	} else {
-		return (1.f - F(n1, n2, gamma_i)) * (1.f - F(n1, n2, gamma_i)) * pow(F(1.f / n1, 1.f / n2, gamma_t), p - 1) * pow(T(sigma_a_prime, h), p);
+		vec3 T = T(sigma_a / cos(theta_t), gamma_t);
+		vec3 Tpow = vec3(pow(T.r, p), pow(T.g, p), pow(T.b, p));
+		return (1.f - F(n_p, n_pp, gamma_i)) * (1.f - F(n_p, n_pp, gamma_i)) * pow(F(1.f / n_p, 1.f / n_pp, gamma_t), p - 1) * Tpow;
 	}
 }
 
@@ -60,9 +71,9 @@ float N(float p, float phi) {
 	int numRoots = 1;
 
 	float N = 0;
-	for (int i = 0; i < numRoots; i++) {
-		N += A(p, h(p, r, phi)) * abs(dphi_dh);
-	}
+	//for (int i = 0; i < numRoots; i++) {
+	//	N += A(p, h(p, r, phi)) * abs(dphi_dh);
+	//}
 	return N;
 }
 
@@ -73,21 +84,35 @@ void main() {
 	vec3 w_i = in_lightDir;
 	vec3 w_o = in_viewDir;
 
+	// TODO: make these globals?
+	const float n = 1.55; // index of refraction
+	const vec3 sigma_a = vec3(0.132, 0.212, 0.78); // absorption coeffcient
+	const float a = 0.85; // eccentricity: [0.85, 1]
+
 	// all angles in degrees
-	float theta_i = angleBetweenVectorAndPlane(w_i, in_u) * 180.0 / PI;
-	float theta_o = angleBetweenVectorAndPlane(w_o, in_u) * 180.0 / PI;
+	float theta_i = angleBetweenVectorAndPlane(w_i, in_u) * RAD_TO_DEG;
+	float theta_o = angleBetweenVectorAndPlane(w_o, in_u) * RAD_TO_DEG;
+
+	float phi_i = angleBetweenVectorAndPlane(w_i, in_w) * RAD_TO_DEG;
+	float phi_o = angleBetweenVectorAndPlane(w_o, in_w) * RAD_TO_DEG;
 
 	float theta_h = (theta_i + theta_o) / 2.f;
 	float theta_d = (theta_o - theta_i) / 2.f;
 
-	float phi;
+	float phi_h = (phi_o + phi_i) / 2.f;
+	float phi_d = (phi_o - phi_i) / 2.f;
+	float phi = phi_o - phi_i;
+	//float phi = phi_d;
 
-	float alpha_R = -10; // -10 to -5 degrees
-	float alpha_TT = -alpha_R / 2.0;
-	float alpha_TRT = - 3.0 * alpha_R / 2.0;
-	float beta_R = 5.0; // 5 to 10 degrees
-	float beta_TT = beta_R / 2.0;
-	float beta_TRT = 2 * beta_R;
+
+	const float alpha_R = -5.f; // -10 to -5 degrees
+	const float alpha_TT = -alpha_R / 2.0;
+	const float alpha_TRT = -3.f * alpha_R / 2.f;
+	const float beta_R = 10.0; // 5 to 10 degrees
+	const float beta_TT = 5.f;//beta_R / 2.0;
+	const float beta_TRT = 20.f;//2.f * beta_R;
+
+	const float beta_N = 0.3; // roughness TODO?
 
 	// longitudinal scattering function M
 	float M_R = gaussian(beta_R, theta_h - alpha_R);
@@ -95,24 +120,38 @@ void main() {
 	float M_TRT = gaussian(beta_TRT, theta_h - alpha_TRT);
 
 	// azimuthal scattering function N
-	float N_R = N(0, phi);
-	float N_TT = N(1, phi);
-	float N_TRT = 1.f;
+	// using Frostbite engine approximations (SIGGRAPH hair course 2019)
+	vec3 N_R = schlicks(n, 1.0, sqrt(0.5 * (1.f + dot(w_i, w_o)))) * 0.25f * cos(phi / 2.f) * vec3(1.f);
+	vec3 N_TT = A(1, 0, n, sigma_a) * 1.f; // TODO: missing term
+	//float s_r = clamp(1.5 * (1.f - beta_N), 0.f, 1.f);
+	float s_r = 1.5 * (1.f - beta_N);
+	vec3 N_TRT = A(2, sqrt(3.f) / 2.f, n, sigma_a) * s_r * exp(s_r * (17.f * cos(phi) - 16.78f));
+
+	// artist approximations
+	float N_R2 = cos(phi_d / 2.f);
+	float gamma_TT = 5;
+	float gamma_g = 10;
+	float I_g = 5.f;
+	float N_TT2 = gaussian(PI - phi_d, gamma_TT * gamma_TT);
+	float N_TRT2 = N_R2 + I_g * gaussian(35.f - phi_d, gamma_g * gamma_g); 
+
 
 	// scattering function S
-	float S = (M_R * N_R + M_TT * N_TT + M_TRT * N_TRT) / cos(theta_d) * cos(theta_d); 
+	vec3 S = (M_R * N_R + M_TT * N_TT + M_TRT * N_TRT) / cos(theta_d) * cos(theta_d); 
+	vec3 S2 = vec3(227, 204, 136) * over255 * (M_R * N_R2 + M_TT * N_TT2 + M_TRT * N_TRT2) / cos(theta_d) * cos(theta_d); 
 
 	// gradient color
 	vec3 c1 = vec3(171, 146, 99) * over255;
 	vec3 c2 = vec3(216,192,120) * over255;
 	vec3 c3 = vec3(242,231,199) * over255;
-
 	float t = in_uv.y;
-
 	vec3 color = mix(mix(c1, c2, t), mix(c2, c3, t), t);
+
+
 	//color = vec3(25, 16, 8) * over255;
-    outColor = vec4(S, S, S, 1.0);
-    //outColor = vec4(S, S, S, 1.0);
+	//theta_i += 180;
+    //outColor = vec4(N_TRT, N_TRT, N_TRT, 1.0);
+	outColor = vec4(S2, 1.0);
 	
 	//outColor = vec4(0.96, 0.89, 0.56, 1.0);
 }
