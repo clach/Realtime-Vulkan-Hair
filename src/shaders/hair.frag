@@ -163,7 +163,6 @@ void main() {
 	float N_TT2 = gaussian(PI - phi_d, gamma_TT * gamma_TT);
 	float N_TRT2 = N_R2 + I_g * gaussian(35.f - phi_d, gamma_g * gamma_g); 
 
-
 	// scattering function S
 	float cosTheta_d = cos(theta_d * DEG_TO_RAD);
 	vec3 S = (M_R * N_R + M_TT * N_TT + M_TRT * N_TRT) / cosTheta_d * cosTheta_d; 
@@ -176,7 +175,6 @@ void main() {
 	vec3 c3 = vec3(242,231,199) * over255;
 	float t = in_uv.y;
 	vec3 color = mix(mix(c1, c2, t), mix(c2, c3, t), t);
-
 
 	//color = vec3(25, 16, 8) * over255;
 	//theta_i += 180;

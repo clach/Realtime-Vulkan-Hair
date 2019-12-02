@@ -196,7 +196,6 @@ void main() {
 	vec3 cameraPos = vec3(invView[3][0], invView[3][1], invView[3][2]);
 	out_viewDir = cameraPos - pos2;
 
-
 	gl_Position = camera.proj * camera.view * vec4(pos2, 1.0);
 }
 
