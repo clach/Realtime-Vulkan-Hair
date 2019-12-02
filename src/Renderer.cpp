@@ -1083,7 +1083,7 @@ void Renderer::CreateComputePipeline() {
 
 
 
-	if (vkCreateComputePipelines(logicalDevice, VK_NULL_HANDLE, 1, createInfos.data(), nullptr, pipelines) != VK_SUCCESS) {
+	if (vkCreateComputePipelines(logicalDevice, VK_NULL_HANDLE, 1, createInfos.data(), nullptr, &computePipeline) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create compute pipeline");
     }
 
