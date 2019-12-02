@@ -14,6 +14,13 @@ SwapChain* swapChain;
 Renderer* renderer;
 Camera* camera;
 
+bool WDown = true;
+bool ADown = false;
+bool SDown = false;
+bool DDown = false;
+bool QDown = false;
+bool EDown = false;
+
 namespace {
     void resizeCallback(GLFWwindow* window, int width, int height) {
         if (width == 0 || height == 0) return;
@@ -27,6 +34,57 @@ namespace {
     bool rightMouseDown = false;
     double previousX = 0.0;
     double previousY = 0.0;
+
+	void keyPressCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+		if (key == GLFW_KEY_W) {
+			if (action == GLFW_PRESS) {
+				WDown = true;
+			}
+			else if (action == GLFW_RELEASE) {
+				WDown = false;
+			}
+		}
+		else if (key == GLFW_KEY_A) {
+			if (action == GLFW_PRESS) {
+				ADown = true;
+			}
+			else if (action == GLFW_RELEASE) {
+				ADown = false;
+			}
+		}
+		else if (key == GLFW_KEY_S) {
+			if (action == GLFW_PRESS) {
+				SDown = true;
+			}
+			else if (action == GLFW_RELEASE) {
+				SDown = false;
+			}
+		}
+		else if (key == GLFW_KEY_D) {
+			if (action == GLFW_PRESS) {
+				DDown = true;
+			}
+			else if (action == GLFW_RELEASE) {
+				DDown = false;
+			}
+		}
+		else if (key == GLFW_KEY_Q) {
+			if (action == GLFW_PRESS) {
+				QDown = true;
+			}
+			else if (action == GLFW_RELEASE) {
+				QDown = false;
+			}
+		}
+		else if (key == GLFW_KEY_E) {
+			if (action == GLFW_PRESS) {
+				EDown = true;
+			}
+			else if (action == GLFW_RELEASE) {
+				EDown = false;
+			}
+		}
+	}
 
     void mouseDownCallback(GLFWwindow* window, int button, int action, int mods) {
         if (button == GLFW_MOUSE_BUTTON_LEFT) {
@@ -68,6 +126,34 @@ namespace {
     }
 }
 
+
+void moveSphere(VkCommandPool commandPool) {
+	float delta = 0.001;
+	if (WDown) {
+		glm::vec3 translation(0.0, delta, 0.0);
+		renderer->scene->translateSphere(translation);
+		//for (Model* m : renderer->scene->GetModels()) {
+		//	m->translateModel(translation);
+		//	//break;
+		//}
+		renderer->scene->GetModels().at(1)->translateModel(translation);
+	}
+	if (ADown) {
+		renderer->scene->translateSphere(glm::vec3(-delta, 0.0, 0.0));
+	}
+	if (SDown) {
+		renderer->scene->translateSphere(glm::vec3(0.0, -delta, 0.0));
+	}
+	if (DDown) {
+		renderer->scene->translateSphere(glm::vec3(delta, 0.0, 0.0));
+	}
+	if (QDown) {
+		renderer->scene->translateSphere(glm::vec3(0.0, 0.0, -delta));
+	}
+	if (EDown) {
+		renderer->scene->translateSphere(glm::vec3(0.0, 0.0, delta));
+	}
+}
 int main() {
     static constexpr char* applicationName = "Realtime Vulkan Hair";
     InitializeWindow(640, 480, applicationName);
@@ -142,18 +228,22 @@ int main() {
 	Collider shoulderRCollider = Collider(glm::vec3(-0.698, 0.087, -0.36), glm::vec3(-20.254, 13.144, 34.5), glm::vec3(0.721, 1.0, 0.724));
 	Collider shoulderLCollider = Collider(glm::vec3(0.698, 0.087, -0.36), glm::vec3(-20.254, 13.144, -34.5), glm::vec3(0.721, 1.0, 0.724));
 
-    Scene* scene = new Scene(device);
+
+	std::vector<Collider> colliders = { testCollider, headCollider, neckCollider, bustCollider, shoulderRCollider, shoulderLCollider };
+
+    Scene* scene = new Scene(device, colliders);
     scene->AddModel(collisionSphere);
     scene->AddModel(head);
     scene->AddHair(hair);
-	scene->AddCollider(testCollider);
+	/*scene->AddCollider(testCollider);
     scene->AddCollider(headCollider);
     scene->AddCollider(neckCollider);
     scene->AddCollider(bustCollider);
     scene->AddCollider(shoulderRCollider);
-	scene->AddCollider(shoulderLCollider);
+	scene->AddCollider(shoulderLCollider);*/
 
 	scene->CreateCollidersBuffer(transferCommandPool);
+
 
 	vkDestroyCommandPool(device->GetVkDevice(), transferCommandPool, nullptr);
 
@@ -163,11 +253,15 @@ int main() {
     glfwSetWindowSizeCallback(GetGLFWWindow(), resizeCallback);
     glfwSetMouseButtonCallback(GetGLFWWindow(), mouseDownCallback);
     glfwSetCursorPosCallback(GetGLFWWindow(), mouseMoveCallback);
+	glfwSetKeyCallback(GetGLFWWindow(), keyPressCallback);
 
     while (!ShouldQuit()) {
         glfwPollEvents();
         scene->UpdateTime();
 		double previousTime = glfwGetTime();
+		moveSphere(transferCommandPool);
+		//renderer->UpdateShere();
+
         renderer->Frame();
 		double currentTime = glfwGetTime();
 		//std::cout << currentTime - previousTime << std::endl;

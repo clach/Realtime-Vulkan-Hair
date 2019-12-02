@@ -47,7 +47,7 @@ void Renderer::CreateCommandPools() {
     VkCommandPoolCreateInfo graphicsPoolInfo = {};
     graphicsPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     graphicsPoolInfo.queueFamilyIndex = device->GetInstance()->GetQueueFamilyIndices()[QueueFlags::Graphics];
-    graphicsPoolInfo.flags = 0;
+    graphicsPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
     if (vkCreateCommandPool(logicalDevice, &graphicsPoolInfo, nullptr, &graphicsCommandPool) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create command pool");
@@ -56,7 +56,7 @@ void Renderer::CreateCommandPools() {
     VkCommandPoolCreateInfo computePoolInfo = {};
     computePoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     computePoolInfo.queueFamilyIndex = device->GetInstance()->GetQueueFamilyIndices()[QueueFlags::Compute];
-    computePoolInfo.flags = 0;
+    computePoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
     if (vkCreateCommandPool(logicalDevice, &computePoolInfo, nullptr, &computeCommandPool) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create command pool");
@@ -305,7 +305,7 @@ void Renderer::CreateDescriptorPool() {
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = 7; // TODO: idk what determines this number
+    poolInfo.maxSets = 9; // TODO: idk what determines this number
 
     if (vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create descriptor pool");
@@ -369,15 +369,15 @@ void Renderer::CreateModelDescriptorSets() {
 
     for (uint32_t i = 0; i < scene->GetModels().size(); ++i) {
         VkDescriptorBufferInfo modelBufferInfo = {};
-        modelBufferInfo.buffer = scene->GetModels()[i]->GetModelBuffer();
+        modelBufferInfo.buffer = scene->GetModels().at(i)->GetModelBuffer();
         modelBufferInfo.offset = 0;
         modelBufferInfo.range = sizeof(ModelBufferObject);
 
         // Bind image and sampler resources to the descriptor
         VkDescriptorImageInfo imageInfo = {};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = scene->GetModels()[i]->GetTextureView();
-        imageInfo.sampler = scene->GetModels()[i]->GetTextureSampler();
+        imageInfo.imageView = scene->GetModels().at(i)->GetTextureView();
+        imageInfo.sampler = scene->GetModels().at(i)->GetTextureSampler();
 
         descriptorWrites[2 * i + 0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[2 * i + 0].dstSet = modelDescriptorSets[i];
@@ -1160,7 +1160,7 @@ void Renderer::RecordCommandBuffers() {
             barriers[j].buffer = scene->GetHair()[j]->GetNumStrandsBuffer();
             barriers[j].offset = 0;
             barriers[j].size = sizeof(StrandDrawIndirect);
-        }
+        } 
 
 		vkCmdPipelineBarrier(commandBuffers[i], VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, 0, 0, nullptr, barriers.size(), barriers.data(), 0, nullptr);
 
@@ -1255,6 +1255,25 @@ void Renderer::Frame() {
     if (!swapChain->Present()) {
         RecreateFrameResources();
     }
+}
+
+
+void Renderer::UpdateShere() {
+	VkCommandBufferBeginInfo beginInfo = {};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+	beginInfo.pInheritanceInfo = nullptr;
+
+	// ~ Start recording ~
+	if (vkBeginCommandBuffer(computeCommandBuffer, &beginInfo) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to begin recording compute command buffer");
+	}	
+	
+	vkCmdUpdateBuffer(computeCommandBuffer, this->scene->GetCollidersBuffer(), 0, sizeof(Collider) * this->scene->GetColliders().size(), this->scene->GetColliders().data());
+
+	if (vkEndCommandBuffer(computeCommandBuffer) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to record compute command buffer");
+	}
 }
 
 Renderer::~Renderer() {

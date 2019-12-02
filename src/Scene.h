@@ -44,6 +44,7 @@ private:
     Time time;
 
     void* mappedData;
+	void* mappedData2;
 
     std::vector<Model*> models;
     std::vector<Hair*> hair;
@@ -56,7 +57,7 @@ private:
 
 public:
     Scene() = delete;
-    Scene(Device* device);
+    Scene(Device* device, std::vector<Collider> colliders);
     ~Scene();
 
     const std::vector<Model*>& GetModels() const;
@@ -66,6 +67,8 @@ public:
     void AddModel(Model* model);
     void AddHair(Hair* hair);
     void AddCollider(Collider collider);
+
+	void translateSphere(glm::vec3 translation);
 
     VkBuffer GetTimeBuffer() const;
     VkBuffer GetCollidersBuffer() const;
