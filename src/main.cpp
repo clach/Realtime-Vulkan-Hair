@@ -14,7 +14,7 @@ SwapChain* swapChain;
 Renderer* renderer;
 Camera* camera;
 
-bool WDown = true;
+bool WDown = false;
 bool ADown = false;
 bool SDown = false;
 bool DDown = false;
@@ -128,31 +128,29 @@ namespace {
 
 
 void moveSphere(VkCommandPool commandPool) {
-	float delta = 0.001;
+	float delta = 0.0007;
+	glm::vec3 translation(0.0);
 	if (WDown) {
-		glm::vec3 translation(0.0, delta, 0.0);
-		renderer->scene->translateSphere(translation);
-		//for (Model* m : renderer->scene->GetModels()) {
-		//	m->translateModel(translation);
-		//	//break;
-		//}
-		renderer->scene->GetModels().at(1)->translateModel(translation);
+		translation += glm::vec3(0.0, delta, 0.0);
 	}
 	if (ADown) {
-		renderer->scene->translateSphere(glm::vec3(-delta, 0.0, 0.0));
+		translation += glm::vec3(-delta, 0.0, 0.0);
 	}
 	if (SDown) {
-		renderer->scene->translateSphere(glm::vec3(0.0, -delta, 0.0));
+		translation += glm::vec3(0.0, -delta, 0.0);
 	}
 	if (DDown) {
-		renderer->scene->translateSphere(glm::vec3(delta, 0.0, 0.0));
+		translation += glm::vec3(delta, 0.0, 0.0);	
 	}
 	if (QDown) {
-		renderer->scene->translateSphere(glm::vec3(0.0, 0.0, -delta));
+		translation += glm::vec3(0.0, 0.0, -delta);		
 	}
 	if (EDown) {
-		renderer->scene->translateSphere(glm::vec3(0.0, 0.0, delta));
+		translation += glm::vec3(0.0, 0.0, delta);
 	}
+
+	renderer->scene->translateSphere(translation);
+	renderer->scene->GetModels().at(1)->translateModel(translation);
 }
 int main() {
     static constexpr char* applicationName = "Realtime Vulkan Hair";
@@ -242,7 +240,7 @@ int main() {
     scene->AddCollider(shoulderRCollider);
 	scene->AddCollider(shoulderLCollider);*/
 
-	scene->CreateCollidersBuffer(transferCommandPool);
+	//scene->CreateCollidersBuffer(transferCommandPool);
 
 
 	vkDestroyCommandPool(device->GetVkDevice(), transferCommandPool, nullptr);
