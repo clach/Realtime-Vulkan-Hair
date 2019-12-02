@@ -115,7 +115,6 @@ void main() {
 				tempDamp = 0.995;
 	//			extraDamp = 1.0;
 			} 
-			break;
 		}
 		if (collisionCount > 0) {
 			force += (1.0 / float(collisionCount)) * addedForce;
