@@ -736,6 +736,7 @@ void Renderer::CreateHairPipeline() {
     VkShaderModule vertShaderModule = ShaderModule::Create("shaders/hair.vert.spv", logicalDevice);
     VkShaderModule tescShaderModule = ShaderModule::Create("shaders/hair.tesc.spv", logicalDevice);
     VkShaderModule teseShaderModule = ShaderModule::Create("shaders/hair.tese.spv", logicalDevice);
+    VkShaderModule geomShaderModule = ShaderModule::Create("shaders/hair.geom.spv", logicalDevice);
     VkShaderModule fragShaderModule = ShaderModule::Create("shaders/hair.frag.spv", logicalDevice);
 
     // Assign each shader module to the appropriate stage in the pipeline
@@ -757,13 +758,19 @@ void Renderer::CreateHairPipeline() {
     teseShaderStageInfo.module = teseShaderModule;
     teseShaderStageInfo.pName = "main";
 
+	VkPipelineShaderStageCreateInfo geomShaderStageInfo = {};
+	geomShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	geomShaderStageInfo.stage = VK_SHADER_STAGE_GEOMETRY_BIT;
+	geomShaderStageInfo.module = geomShaderModule;
+	geomShaderStageInfo.pName = "main";
+
     VkPipelineShaderStageCreateInfo fragShaderStageInfo = {};
     fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
     fragShaderStageInfo.module = fragShaderModule;
     fragShaderStageInfo.pName = "main";
 
-    VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, tescShaderStageInfo, teseShaderStageInfo, fragShaderStageInfo };
+    VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, tescShaderStageInfo, teseShaderStageInfo, geomShaderStageInfo, fragShaderStageInfo };
 
     // --- Set up fixed-function stages ---
 
@@ -888,7 +895,7 @@ void Renderer::CreateHairPipeline() {
     // --- Create graphics pipeline ---
     VkGraphicsPipelineCreateInfo pipelineInfo = {};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineInfo.stageCount = 4;
+    pipelineInfo.stageCount = 5;
     pipelineInfo.pStages = shaderStages;
     pipelineInfo.pVertexInputState = &vertexInputInfo;
     pipelineInfo.pInputAssemblyState = &inputAssembly;
