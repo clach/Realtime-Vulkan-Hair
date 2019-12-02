@@ -13,6 +13,11 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 layout(location = 0) in vec4[][NUM_CURVE_POINTS] in_curvePoints;
 
 layout(location = 0) out vec2 out_uv;
+layout(location = 1) out vec3 out_u;
+layout(location = 2) out vec3 out_v;
+layout(location = 3) out vec3 out_w;
+layout(location = 4) out vec3 out_viewDir;
+layout(location = 5) out vec3 out_lightDir;
 
 // https://thebookofshaders.com/10/
 float random(vec2 st) {
@@ -25,41 +30,18 @@ vec3 func(float u, float v) {
 	vec3 v1; // current segment's first point
 	vec3 v2; // current segment's second point
 	vec3 v3; // next point after segment
-
 	
 	// All segments have first and second points
 	int segmentFirst = int(floor(v * (NUM_CURVE_POINTS - 1)));
 	int segmentSecond = segmentFirst + 1;
 	v1 = in_curvePoints[0][segmentFirst].xyz;
-	//vec3 v1_1 = in_curvePoints[1][segmentFirst].xyz;
-	//vec3 v1_2 = in_curvePoints[2][segmentFirst].xyz;
-
-	//float w1 = random(vec2(u, u));
-	//float w2 = random(vec2(u * u, u * u));
-	//if (w1 + w2 > 0) {
-	//	w1 = 1 - w1;
-	//	w2 = 1 - w2;
-	//}
-
-	//v1 = v1 * w1 + v1_1 * w2 + (1 - w1 - w2) * v1_2;
-	//v1 = v1 * w1 + v1_1 * (1 - w1);
-
 	v2 = in_curvePoints[0][segmentSecond].xyz;
-	//vec3 v2_1 = in_curvePoints[1][segmentSecond].xyz;
-	//vec3 v2_2 = in_curvePoints[2][segmentSecond].xyz;
-	//v2 = v2 * w1 + v2_1 * w2 + (1 - w1 - w2) * v2_2;
-	//v2 = v2 * w1 + v2_1 * (1 - w1);
-
+	
 	if (segmentFirst == 0) {
 		// If first segment
 		v0 = v1 + (v1 - v2);
 	} else {
 		v0 = in_curvePoints[0][segmentFirst - 1].xyz;
-		//vec3 v0_1 = in_curvePoints[1][segmentFirst - 1].xyz;
-		//vec3 v0_2 = in_curvePoints[2][segmentFirst - 1].xyz;
-		//v0 = v0 * w1 + v0_1 * w2 + (1 - w1 - w2) * v0_2;
-		//v0 = v0 * w1 + v0_1 * (1 - w1);
-
 	}
 
 	if (segmentSecond == NUM_CURVE_POINTS - 1) {
@@ -67,10 +49,6 @@ vec3 func(float u, float v) {
 		v3 = v2 + (v2 - v1);
 	} else {
 		v3 = in_curvePoints[0][segmentSecond + 1].xyz;
-		//vec3 v3_1 = in_curvePoints[1][segmentFirst + 1].xyz;
-		//vec3 v3_2 = in_curvePoints[2][segmentFirst + 1].xyz;
-		//v3 = v3 * w1 + v3_1 * w2 + (1 - w1 - w2) * v3_2;
-		//v3 = v3 * w1 + v3_1 * (1 - w1);
 	}
 
 	// Create bezier control points based on 4 surrounding curve points
@@ -91,8 +69,18 @@ vec3 func(float u, float v) {
 	vec3 b12 = mix(b11, b21, t);
 		 		   		
 	vec3 c = mix(b02, b12, t);
-
 	return c;
+}
+
+// Hughes-Moller method for computing orthonormal vector
+vec3 hughesMoellerMethod(vec3 n) {
+	vec3 b;
+	if (abs(n.x) > abs(n.z)) {
+		b = vec3(-n.y, n.x, 0.f);
+	} else {
+		b = vec3(0.f, -n.z, n.y);
+	}
+	return normalize(b);
 }
 
 void main() {
@@ -113,7 +101,6 @@ void main() {
 	vec3 v2; // current segment's second point
 	vec3 v3; // next point after segment
 
-	
 	// All segments have first and second points
 	int segmentFirst = int(floor(v * (NUM_CURVE_POINTS - 1)));
 	int segmentSecond = segmentFirst + 1;
@@ -194,5 +181,21 @@ void main() {
 
 	vec3 pos = mix(pos1, pos2, 0.8);
 
+
+
+	// caculate orthonormal basis for shading
+	vec3 tangent = normalize(b12 - b02);
+	out_u = tangent;
+	vec3 ortho = hughesMoellerMethod(tangent);
+	out_v = ortho;
+	out_w = cross(ortho, tangent);
+
+	vec3 lightPos = vec3(3.f, 0, 0);
+	out_lightDir = normalize(lightPos - pos2);
+	mat4 invView = inverse(camera.view); // TODO: compute ahead of time?
+	vec3 cameraPos = vec3(invView[3][0], invView[3][1], invView[3][2]);
+	out_viewDir = cameraPos - pos2;
+
 	gl_Position = camera.proj * camera.view * vec4(pos2, 1.0);
 }
+
