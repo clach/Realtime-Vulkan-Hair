@@ -190,11 +190,11 @@ void main() {
 	out_v = ortho;
 	out_w = cross(ortho, tangent);
 
-	vec3 lightPos = vec3(5.f);
+	vec3 lightPos = vec3(3.f, 0, 0);
 	out_lightDir = normalize(lightPos - pos2);
 	mat4 invView = inverse(camera.view); // TODO: compute ahead of time?
 	vec3 cameraPos = vec3(invView[3][0], invView[3][1], invView[3][2]);
-	out_viewDir = normalize(cameraPos - pos2);
+	out_viewDir = cameraPos - pos2;
 
 
 	gl_Position = camera.proj * camera.view * vec4(pos2, 1.0);

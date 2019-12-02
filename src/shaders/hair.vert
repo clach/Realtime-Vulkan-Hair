@@ -2,7 +2,6 @@
 #extension GL_ARB_separate_shader_objects : enable
 #define NUM_CURVE_POINTS 10
 
-
 layout(set = 1, binding = 0) uniform ModelBufferObject {
     mat4 model;
 };
