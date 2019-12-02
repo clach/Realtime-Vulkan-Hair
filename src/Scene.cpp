@@ -1,10 +1,14 @@
 #include "Scene.h"
 #include "BufferUtils.h"
 
-Scene::Scene(Device* device) : device(device) {
+Scene::Scene(Device* device, std::vector<Collider> colliders) : device(device), colliders(colliders) {
     BufferUtils::CreateBuffer(device, sizeof(Time), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, timeBuffer, timeBufferMemory);
     vkMapMemory(device->GetVkDevice(), timeBufferMemory, 0, sizeof(Time), 0, &mappedData);
     memcpy(mappedData, &time, sizeof(Time));
+
+	BufferUtils::CreateBuffer(device, sizeof(Collider) * this->colliders.size(), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, collidersBuffer, collidersBufferMemory);
+	vkMapMemory(device->GetVkDevice(), collidersBufferMemory, 0, sizeof(Collider) * this->colliders.size(), 0, &mappedData2);
+	memcpy(mappedData2, this->colliders.data(), sizeof(Collider) * this->colliders.size());
 }
 
 const std::vector<Model*>& Scene::GetModels() const {
@@ -51,8 +55,22 @@ VkBuffer Scene::GetCollidersBuffer() const {
 }
 
 void Scene::CreateCollidersBuffer(VkCommandPool commandPool) {
-	BufferUtils::CreateBufferFromData(device, commandPool, colliders.data(), colliders.size() * sizeof(Collider), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, collidersBuffer, collidersBufferMemory);
+	//BufferUtils::CreateBufferFromData(device, commandPool, colliders.data(), colliders.size() * sizeof(Collider), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, collidersBuffer, collidersBufferMemory);
 
+}
+
+void Scene::translateSphere(glm::vec3 translation) {
+	if (this->colliders.size() > 0) {
+		glm::mat4 currTransform = this->colliders.at(0).transform;
+		glm::mat4 newTransform = glm::translate(currTransform, translation);
+
+		this->colliders.at(0).transform = newTransform;
+		glm::mat4 inverse = glm::inverse(newTransform);
+		this->colliders.at(0).inv = inverse;
+		this->colliders.at(0).invTrans = glm::transpose(inverse);
+	}
+	//vkMapMemory(device->GetVkDevice(), collidersBufferMemory, 0, sizeof(Collider) * this->colliders.size(), 0, &mappedData2);
+	memcpy(mappedData2, this->colliders.data(), sizeof(Collider) * this->colliders.size());
 }
 
 

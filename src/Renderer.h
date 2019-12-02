@@ -11,6 +11,9 @@ public:
     Renderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* camera);
     ~Renderer();
 
+	Scene* scene;
+
+
     void CreateCommandPools();
 
     void CreateRenderPass();
@@ -42,13 +45,14 @@ public:
     void RecordCommandBuffers();
     void RecordComputeCommandBuffer();
 
+	void UpdateShere();
+
     void Frame();
 
 private:
     Device* device;
     VkDevice logicalDevice;
     SwapChain* swapChain;
-    Scene* scene;
     Camera* camera;
 
     VkCommandPool graphicsCommandPool;

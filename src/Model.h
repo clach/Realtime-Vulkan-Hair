@@ -6,6 +6,8 @@
 
 #include "Vertex.h"
 #include "Device.h"
+#include <glm/gtx/transform.hpp>
+
 
 struct ModelBufferObject {
     glm::mat4 modelMatrix;
@@ -26,6 +28,8 @@ protected:
 
     VkBuffer modelBuffer;
     VkDeviceMemory modelBufferMemory;
+
+	void* mappedData;
 
     ModelBufferObject modelBufferObject;
 
@@ -49,6 +53,8 @@ public:
     VkBuffer getIndexBuffer() const;
 
     const ModelBufferObject& getModelBufferObject() const;
+
+	void translateModel(glm::vec3 translation);
 
     VkBuffer GetModelBuffer() const;
     VkImageView GetTextureView() const;
