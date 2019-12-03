@@ -305,7 +305,7 @@ void Renderer::CreateDescriptorPool() {
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = 9; // TODO: idk what determines this number
+    poolInfo.maxSets = 7; // TODO: idk what determines this number
 
     if (vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create descriptor pool");
@@ -369,15 +369,15 @@ void Renderer::CreateModelDescriptorSets() {
 
     for (uint32_t i = 0; i < scene->GetModels().size(); ++i) {
         VkDescriptorBufferInfo modelBufferInfo = {};
-        modelBufferInfo.buffer = scene->GetModels().at(i)->GetModelBuffer();
+        modelBufferInfo.buffer = scene->GetModels()[i]->GetModelBuffer();
         modelBufferInfo.offset = 0;
         modelBufferInfo.range = sizeof(ModelBufferObject);
 
         // Bind image and sampler resources to the descriptor
         VkDescriptorImageInfo imageInfo = {};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = scene->GetModels().at(i)->GetTextureView();
-        imageInfo.sampler = scene->GetModels().at(i)->GetTextureSampler();
+        imageInfo.imageView = scene->GetModels()[i]->GetTextureView();
+        imageInfo.sampler = scene->GetModels()[i]->GetTextureSampler();
 
         descriptorWrites[2 * i + 0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[2 * i + 0].dstSet = modelDescriptorSets[i];

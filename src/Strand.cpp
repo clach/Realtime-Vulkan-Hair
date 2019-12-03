@@ -28,7 +28,7 @@ int GeneratePointsOnMesh(std::string filename, std::vector<glm::vec3>& points, s
 	{
 		// select vertex at random
 		//int v = generateRandomInt(0, vertices.size());
-		points.push_back(vertices[i].pos);
+		points.push_back(vertices[i].pos + 0.01f * vertices[i].nor);
 		pointNormals.push_back(vertices[i].nor);
 
 		// select triangle at random
@@ -75,8 +75,9 @@ Hair::Hair(Device* device, VkCommandPool commandPool, std::string objFilename) :
 			currentStrand.curveVels[j] = glm::vec4(0.0, 0.0, -10.0, 0.0);
 			currentStrand.correctionVecs[j] = glm::vec4(0.0);
 			glm::vec3 dir = pointNormals[i];
-			dir[2] -= 4.0;
-			dir[1] += 3.0;
+			dir[2] -= 2.0;
+			dir[1] += 1.0;
+			dir[0] += 0.08;
 			currPoint += (float)(length / (NUM_CURVE_POINTS - 1.0)) * dir;
 		}
 
