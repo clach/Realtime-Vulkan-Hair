@@ -1,7 +1,7 @@
 #include "Scene.h"
 #include "BufferUtils.h"
 
-Scene::Scene(Device* device, std::vector<Collider> colliders) : device(device), colliders(colliders) {
+Scene::Scene(Device* device, VkCommandPool commandPool, std::vector<Collider> colliders) : device(device), colliders(colliders) {
     BufferUtils::CreateBuffer(device, sizeof(Time), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, timeBuffer, timeBufferMemory);
     vkMapMemory(device->GetVkDevice(), timeBufferMemory, 0, sizeof(Time), 0, &mappedData);
     memcpy(mappedData, &time, sizeof(Time));
@@ -9,6 +9,15 @@ Scene::Scene(Device* device, std::vector<Collider> colliders) : device(device), 
 	BufferUtils::CreateBuffer(device, sizeof(Collider) * this->colliders.size(), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, collidersBuffer, collidersBufferMemory);
 	vkMapMemory(device->GetVkDevice(), collidersBufferMemory, 0, sizeof(Collider) * this->colliders.size(), 0, &mappedData2);
 	memcpy(mappedData2, this->colliders.data(), sizeof(Collider) * this->colliders.size());
+
+	this->grid = std::vector<glm::vec3>();
+	grid.resize(32 * 32 * 32, glm::vec3(0.0));
+
+	BufferUtils::CreateBufferFromData(device, commandPool, grid.data(), grid.size() * sizeof(glm::vec3), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, gridBuffer, gridBufferMemory);
+
+	//BufferUtils::CreateBuffer(device, sizeof(glm::vec3) * this->grid.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, gridBuffer, gridBufferMemory);
+	//vkMapMemory(device->GetVkDevice(), gridBufferMemory, 0, sizeof(glm::vec3) * this->grid.size(), 0, &mappedData3);
+	//memcpy(mappedData3, this->grid.data(), sizeof(glm::vec3) * this->grid.size());
 }
 
 const std::vector<Model*>& Scene::GetModels() const {
@@ -21,6 +30,10 @@ const std::vector<Hair*>& Scene::GetHair() const {
 
 const std::vector<Collider>& Scene::GetColliders() const {
 	return colliders;
+}
+
+const std::vector<glm::vec3>& Scene::GetGrid() const {
+	return grid;
 }
 
 void Scene::AddModel(Model* model) {
@@ -54,10 +67,13 @@ VkBuffer Scene::GetCollidersBuffer() const {
 	return collidersBuffer;
 }
 
-void Scene::CreateCollidersBuffer(VkCommandPool commandPool) {
-	//BufferUtils::CreateBufferFromData(device, commandPool, colliders.data(), colliders.size() * sizeof(Collider), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, collidersBuffer, collidersBufferMemory);
-
+VkBuffer Scene::GetGridBuffer() const {
+	return gridBuffer;
 }
+
+//void Scene::CreateCollidersBuffer(VkCommandPool commandPool) {
+	//BufferUtils::CreateBufferFromData(device, commandPool, colliders.data(), colliders.size() * sizeof(Collider), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, collidersBuffer, collidersBufferMemory);
+//}
 
 void Scene::translateSphere(glm::vec3 translation) {
 	if (this->colliders.size() > 0) {

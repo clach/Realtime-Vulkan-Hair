@@ -45,6 +45,7 @@ private:
 
     void* mappedData;
 	void* mappedData2;
+	void* mappedData3;
 
     std::vector<Model*> models;
     std::vector<Hair*> hair;
@@ -53,16 +54,21 @@ private:
 	VkBuffer collidersBuffer;
 	VkDeviceMemory collidersBufferMemory;
 
+	std::vector<glm::vec3> grid;
+	VkBuffer gridBuffer;
+	VkDeviceMemory gridBufferMemory;
+
 	high_resolution_clock::time_point startTime = high_resolution_clock::now();
 
 public:
     Scene() = delete;
-    Scene(Device* device, std::vector<Collider> colliders);
+    Scene(Device* device, VkCommandPool commandPool, std::vector<Collider> colliders);
     ~Scene();
 
     const std::vector<Model*>& GetModels() const;
     const std::vector<Hair*>& GetHair() const;
     const std::vector<Collider>& GetColliders() const;
+	const std::vector<glm::vec3>& GetGrid() const;
     
     void AddModel(Model* model);
     void AddHair(Hair* hair);
@@ -72,8 +78,9 @@ public:
 
     VkBuffer GetTimeBuffer() const;
     VkBuffer GetCollidersBuffer() const;
+	VkBuffer GetGridBuffer() const;
 
-	void CreateCollidersBuffer(VkCommandPool commandPool);
+	//void CreateCollidersBuffer(VkCommandPool commandPool);
 
     void UpdateTime();
 };

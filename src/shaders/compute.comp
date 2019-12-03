@@ -4,8 +4,9 @@
 #define WORKGROUP_SIZE 32
 #define NUM_CURVE_POINTS 10
 #define EPSILON 0.00001
-#define DAMPING 0.9992
+#define DAMPING 0.999
 #define NUM_COLLIDERS 6
+#define GRID_DIM 32
 layout(local_size_x = WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
 layout(set = 0, binding = 0) uniform CameraBufferObject {
@@ -29,19 +30,23 @@ layout(set = 2, binding = 0) uniform Colliders {
 	Collider colliders[NUM_COLLIDERS];
 };
 
+layout(set = 3, binding = 0) buffer Grid {
+	vec3 grid[GRID_DIM * GRID_DIM * GRID_DIM];
+};
+
 struct Strand {
     vec4 curvePoints[NUM_CURVE_POINTS];
 	vec4 curveVels[NUM_CURVE_POINTS];
 	vec4 correctionVecs[NUM_CURVE_POINTS];
 };
 
-layout(set = 3, binding = 0) buffer InStrands {
+layout(set = 4, binding = 0) buffer InStrands {
 	Strand inStrands[];
 };
 
 // The project is using vkCmdDrawIndirect to use a buffer as the arguments for a draw call
 // This is sort of an advanced feature so we've showed you what this buffer should look like
-layout(set = 3, binding = 1) buffer NumStrands {
+layout(set = 4, binding = 1) buffer NumStrands {
  	  uint vertexCount;   // Write the number of blades remaining here
  	  uint instanceCount; // = 1
  	  uint firstVertex;   // = 0
@@ -145,19 +150,35 @@ void main() {
 		for (int j = 0; j < NUM_COLLIDERS; j++) {
 			Collider c = colliders[j];
 
-			// Add penalty force to push hair outside of collision object
-			if (EllipsoidCollision(c, currentPos.xyz)) {
-//				collisionCount++;
-				float k = 2000.0; // spring constant, as large as possible without exploding
-				float d = distance(GetPointOnEllipsoid(c, currentPos.xyz), currentPos.xyz);
-				vec3 normal = normalize(GetEllipsoidNormal(c, currentPos.xyz)); // normal of collision surface at point of collision
-				//normal = normalize(currentPos.xyz - vec3(c.transform * vec4(0.0, 0.0, 0.0, 1.0)));
-				force += vec3(k * d * normal); // penalty spring force
-//				force += vec3(k * d * normal);
+			if (j == 0) {
+				float radius = 1.0;
+				if (distance(currentPos, c.transform[3].xyz) < radius) {
+					float k = 1500.0; // spring constant, as large as possible without exploding
+					float d = radius - distance(currentPos, c.transform[3].xyz);
+					vec3 normal = normalize(currentPos - c.transform[3].xyz); // normal of collision surface at point of collision
+					//normal = normalize(currentPos.xyz - vec3(c.transform * vec4(0.0, 0.0, 0.0, 1.0)));
+					force += vec3(k * d * normal); // penalty spring force
+	//				force += vec3(k * d * normal);
 
-				extraDamp = max(1.0 - 0.2 * d, 0.9999); // add extra damping proprotional to depth
-				tempDamp = 0.999;
-			} 
+					extraDamp = max(1.0 - 0.05 * d, 0.9999); // add extra damping proprotional to depth
+					tempDamp = 0.9998;
+				}
+			}
+			else {
+				// Add penalty force to push hair outside of collision object
+				if (EllipsoidCollision(c, currentPos.xyz)) {
+	//				collisionCount++;
+					float k = 1500.0; // spring constant, as large as possible without exploding
+					float d = distance(GetPointOnEllipsoid(c, currentPos.xyz), currentPos.xyz);
+					vec3 normal = normalize(GetEllipsoidNormal(c, currentPos.xyz)); // normal of collision surface at point of collision
+					//normal = normalize(currentPos.xyz - vec3(c.transform * vec4(0.0, 0.0, 0.0, 1.0)));
+					force += vec3(k * d * normal); // penalty spring force
+	//				force += vec3(k * d * normal);
+
+					extraDamp = max(1.0 - 0.05 * d, 0.9999); // add extra damping proprotional to depth
+					tempDamp = 0.9998;
+				} 
+			}
 		}
 //		if (collisionCount > 0) {
 //			force += (1.0 / float(collisionCount)) * addedForce;
@@ -175,8 +196,8 @@ void main() {
 		vec3 newVel = (newPos - currentPos) / dt;
 		strand.curvePoints[i] = vec4(newPos, 1.0);
 		strand.curveVels[i] = vec4(DAMPING * tempDamp * extraDamp * newVel, 0.0); 
-		if (length(strand.curveVels[i]) > 4.5) {
-			strand.curveVels[i] = normalize(strand.curveVels[i]) * 4.5;
+		if (length(strand.curveVels[i]) > 10.0) {
+			strand.curveVels[i] = normalize(strand.curveVels[i]) * 10.0;
 		}
 		strand.correctionVecs[i] = vec4(extraDamp * tempDamp * (newPos - predictedPos), 0.0);
 	}
@@ -185,6 +206,9 @@ void main() {
 	for (int i = 1; i < NUM_CURVE_POINTS - 1; ++i) {
 		strand.curveVels[i] -= vec4(DAMPING * strand.correctionVecs[i + 1].xyz / dt, 0.0);
 	}
+
+	float h = 1.0 / GRID_DIM;
+
 
 	inStrands[threadIdx] = strand;
 
