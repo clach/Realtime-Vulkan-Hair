@@ -256,7 +256,7 @@ void main() {
 				}
 			}
 		}
-//		barrier();
+		barrier();
 //		int index = int(x) + int(y) * GRID_DIM + int(z) * GRID_DIM * GRID_DIM;
 ////		strand.curvePoints[i] += 0.0000001 * vec4(float(grid.cells[index].density), float(grid.cells[index].density), float(grid.cells[index].density), 0.0);
 ////		strand.curvePoints[i] += 0.00001 * vec4(float(grid.cells[index].velocity[0]), float(grid.cells[index].velocity[1]), float(grid.cells[index].velocity[2]), 0.0);
@@ -271,15 +271,15 @@ void main() {
 
 	for (int i = 0; i < NUM_CURVE_POINTS; ++i) {
 		vec3 currPos = strand.curvePoints[i].xyz;
-		int x = int((currPos.x - origin.x) / h);
-		int y = int((currPos.y - origin.y) / h);
-		int z = int((currPos.z - origin.z) / h);
+		int x = int(floor((currPos.x - origin.x) / h));
+		int y = int(floor((currPos.y - origin.y) / h));
+		int z = int(floor((currPos.z - origin.z) / h));
 
 		int index = x + y * GRID_DIM + z * GRID_DIM * GRID_DIM;
 
 		vec3 gridVelocity = (1.0 / 100000000.0) * vec3(float(grid.cells[index].velocity[0]), float(grid.cells[index].velocity[1]), float(grid.cells[index].velocity[2]));
 		
-		float friction = 0.0005;
+		float friction = 0.1;
 
 		strand.curveVels[i] = vec4((1.0 - friction) * strand.curveVels[i].xyz + friction * gridVelocity, 0.0);
 	}
