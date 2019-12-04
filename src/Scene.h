@@ -35,6 +35,15 @@ struct Collider {
 	}
 };
 
+struct GridCell {
+	glm::ivec3 velocity;
+	int density;
+	GridCell(glm::ivec3 vel, int density) {
+		this->velocity = vel;
+		this->density = density;
+	}
+};
+
 class Scene {
 private:
     Device* device;
@@ -54,7 +63,8 @@ private:
 	VkBuffer collidersBuffer;
 	VkDeviceMemory collidersBufferMemory;
 
-	std::vector<glm::vec3> grid;
+	//std::vector<glm::vec3> grid;
+	std::vector<GridCell> grid;
 	VkBuffer gridBuffer;
 	VkDeviceMemory gridBufferMemory;
 
@@ -68,7 +78,8 @@ public:
     const std::vector<Model*>& GetModels() const;
     const std::vector<Hair*>& GetHair() const;
     const std::vector<Collider>& GetColliders() const;
-	const std::vector<glm::vec3>& GetGrid() const;
+	//const std::vector<glm::vec3>& GetGrid() const;
+	const std::vector<GridCell>& GetGrid() const;
     
     void AddModel(Model* model);
     void AddHair(Hair* hair);

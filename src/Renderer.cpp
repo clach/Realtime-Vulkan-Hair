@@ -555,7 +555,7 @@ void Renderer::CreateGridDescriptorSets() {
 	VkDescriptorBufferInfo gridBufferInfo = {};
 	gridBufferInfo.buffer = scene->GetGridBuffer();
 	gridBufferInfo.offset = 0;
-	gridBufferInfo.range = scene->GetGrid().size() * sizeof(glm::vec3);
+	gridBufferInfo.range = scene->GetGrid().size() * sizeof(GridCell);
 
 	std::array<VkWriteDescriptorSet, 1> descriptorWrites = {};
 	descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

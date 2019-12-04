@@ -6,7 +6,7 @@
 #define EPSILON 0.00001
 #define DAMPING 0.999
 #define NUM_COLLIDERS 6
-#define GRID_DIM 32
+#define GRID_DIM 64
 #define GRID_HEIGHT 10
 layout(local_size_x = WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
@@ -31,9 +31,14 @@ layout(set = 2, binding = 0) uniform Colliders {
 	Collider colliders[NUM_COLLIDERS];
 };
 
-layout(set = 3, binding = 0) buffer Grid {
-	vec3 grid[GRID_DIM * GRID_DIM * GRID_DIM];
+struct GridCell {
+	ivec3 velocity;
+	int density;
 };
+
+layout(set = 3, binding = 0) buffer Grid {
+	GridCell cells[GRID_DIM * GRID_DIM * GRID_DIM];
+} grid;
 
 struct Strand {
     vec4 curvePoints[NUM_CURVE_POINTS];
@@ -204,7 +209,7 @@ void main() {
 	}
 
 	// Grid goes from -5 to 5
-	float h = GRID_HEIGHT / GRID_DIM;
+	float h = float(GRID_HEIGHT) / float(GRID_DIM);
 	vec3 origin = vec3(-GRID_HEIGHT / 2.0);
 
 	// Apply velocity correction term
@@ -218,16 +223,19 @@ void main() {
 		float y = ((currPos.y - origin.y) / h);
 		float z = ((currPos.z - origin.z) / h);
 
-		int xmin = max(int(x), 0);
-		int xmax = min(int(x) + 1, GRID_DIM - 1);
-		int ymin = max(int(y), 0);
-		int ymax = min(int(y) + 1, GRID_DIM - 1);
-		int zmin = max(int(z), 0);
-		int zmax = min(int(z) + 1, GRID_DIM - 1);
+		int xmin = max(int(floor(x)), 0);
+		int xmax = min(int(floor(x)) + 1, GRID_DIM - 1);
+		int ymin = max(int(floor(y)), 0);
+		int ymax = min(int(floor(y)) + 1, GRID_DIM - 1);
+		int zmin = max(int(floor(z)), 0);
+		int zmax = min(int(floor(z)) + 1, GRID_DIM - 1);
 							
+
+//		strand.curvePoints[i] = vec4(vec3(float(xmax) / 10.0), 1.0);
 		for (int a = xmin; a <= xmax; ++a) {
 			for (int b = ymin; b <= ymax; ++b) {
 				for (int c = zmin; c <= zmax; ++c) {
+//					strand.curvePoints[i] += vec4(1.0, 0.0, 0.0, 0.0);
 					int index = a + b * GRID_DIM + c * GRID_DIM * GRID_DIM;
 
 					float xWeight = 1.0 - abs(x - a);
@@ -237,16 +245,43 @@ void main() {
 					float totalWeight = xWeight * yWeight * zWeight;
 					vec3 weightedVelocity = totalWeight * strand.curveVels[i].xyz;
 
+					atomicAdd(grid.cells[index].velocity[0], int(100000000.0 * weightedVelocity.x));
+					atomicAdd(grid.cells[index].velocity[1], int(100000000.0 * weightedVelocity.y));
+					atomicAdd(grid.cells[index].velocity[2], int(100000000.0 * weightedVelocity.z));
+					atomicAdd(grid.cells[index].density, int(100000000.0 * totalWeight));
+
+//					grid.cells[index].velocity += ivec3(10000 * weightedVelocity);
+//					grid.cells[index].density += int(10000 * totalWeight);
+//					strand.curvePoints[i] += vec4(float(grid.cells[index].density), float(grid.cells[index].density), float(grid.cells[index].density), 0.0);
 				}
 			}
 		}
+//		barrier();
+//		int index = int(x) + int(y) * GRID_DIM + int(z) * GRID_DIM * GRID_DIM;
+////		strand.curvePoints[i] += 0.0000001 * vec4(float(grid.cells[index].density), float(grid.cells[index].density), float(grid.cells[index].density), 0.0);
+////		strand.curvePoints[i] += 0.00001 * vec4(float(grid.cells[index].velocity[0]), float(grid.cells[index].velocity[1]), float(grid.cells[index].velocity[2]), 0.0);
+//		if (index < 64 * 64 * 64) {
+//			strand.curveVels[i] = (1.0 / 10000.0) * vec4(float(grid.cells[index].velocity[0]), float(grid.cells[index].velocity[1]), float(grid.cells[index].velocity[2]), 0.0);
+////			strand.curvePoints[i] = (1.0 / 10000.0) * vec4(float(grid.cells[index].density), float(grid.cells[index].density), float(grid.cells[index].density), 0.0);
+//
+//		}
+	}
 
+	barrier();
 
+	for (int i = 0; i < NUM_CURVE_POINTS; ++i) {
+		vec3 currPos = strand.curvePoints[i].xyz;
+		int x = int((currPos.x - origin.x) / h);
+		int y = int((currPos.y - origin.y) / h);
+		int z = int((currPos.z - origin.z) / h);
 
+		int index = x + y * GRID_DIM + z * GRID_DIM * GRID_DIM;
 
+		vec3 gridVelocity = (1.0 / 100000000.0) * vec3(float(grid.cells[index].velocity[0]), float(grid.cells[index].velocity[1]), float(grid.cells[index].velocity[2]));
+		
+		float friction = 0.0005;
 
-
-
+		strand.curveVels[i] = vec4((1.0 - friction) * strand.curveVels[i].xyz + friction * gridVelocity, 0.0);
 	}
 
 	

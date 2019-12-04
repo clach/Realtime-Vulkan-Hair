@@ -10,10 +10,10 @@ Scene::Scene(Device* device, VkCommandPool commandPool, std::vector<Collider> co
 	vkMapMemory(device->GetVkDevice(), collidersBufferMemory, 0, sizeof(Collider) * this->colliders.size(), 0, &mappedData2);
 	memcpy(mappedData2, this->colliders.data(), sizeof(Collider) * this->colliders.size());
 
-	this->grid = std::vector<glm::vec3>();
-	grid.resize(32 * 32 * 32, glm::vec3(0.0));
+	this->grid = std::vector<GridCell>();
+	grid.resize(64 * 64 * 64, GridCell(glm::ivec3(0), 0));
 
-	BufferUtils::CreateBufferFromData(device, commandPool, grid.data(), grid.size() * sizeof(glm::vec3), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, gridBuffer, gridBufferMemory);
+	BufferUtils::CreateBufferFromData(device, commandPool, grid.data(), grid.size() * sizeof(GridCell), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, gridBuffer, gridBufferMemory);
 
 	//BufferUtils::CreateBuffer(device, sizeof(glm::vec3) * this->grid.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, gridBuffer, gridBufferMemory);
 	//vkMapMemory(device->GetVkDevice(), gridBufferMemory, 0, sizeof(glm::vec3) * this->grid.size(), 0, &mappedData3);
@@ -32,7 +32,7 @@ const std::vector<Collider>& Scene::GetColliders() const {
 	return colliders;
 }
 
-const std::vector<glm::vec3>& Scene::GetGrid() const {
+const std::vector<GridCell>& Scene::GetGrid() const {
 	return grid;
 }
 
