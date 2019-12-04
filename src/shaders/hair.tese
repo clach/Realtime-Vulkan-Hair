@@ -72,15 +72,76 @@ vec3 func(float u, float v) {
 	return c;
 }
 
-// Hughes-Moller method for computing orthonormal vector
-vec3 hughesMoellerMethod(vec3 n) {
-	vec3 b;
-	if (abs(n.x) > abs(n.z)) {
-		b = vec3(-n.y, n.x, 0.f);
+vec3 stupidFunc(float u, float v) {
+	// Get relevant curve points
+	vec3 v0; // previous point before segment
+	vec3 v1; // current segment's first point
+	vec3 v2; // current segment's second point
+	vec3 v3; // next point after segment
+	
+	// All segments have first and second points
+	int segmentFirst = int(floor(v * (NUM_CURVE_POINTS - 1)));
+	int segmentSecond = segmentFirst + 1;
+	v1 = in_curvePoints[0][segmentFirst].xyz;
+	v2 = in_curvePoints[0][segmentSecond].xyz;
+	
+	if (segmentFirst == 0) {
+		// If first segment
+		v0 = v1 + (v1 - v2);
 	} else {
-		b = vec3(0.f, -n.z, n.y);
+		v0 = in_curvePoints[0][segmentFirst - 1].xyz;
 	}
-	return normalize(b);
+
+	if (segmentSecond == NUM_CURVE_POINTS - 1) {
+		// If last segment
+		v3 = v2 + (v2 - v1);
+	} else {
+		v3 = in_curvePoints[0][segmentSecond + 1].xyz;
+	}
+
+	// Create bezier control points based on 4 surrounding curve points
+	vec3 b0 = v1;
+	vec3 b1 = v1 + ((1.0 / 3.0) * ((v2 - v0) / 2.0));
+	vec3 b2 = v2 - ((1.0 / 3.0) * ((v3 - v1) / 2.0));;
+	vec3 b3 = v2;
+
+	// Interpolation value
+	float t = v * (NUM_CURVE_POINTS - 1) - floor(v * (NUM_CURVE_POINTS - 1));
+
+	// De Casteljau's interpolation for Bezier curve position
+	vec3 b01 = mix(b0, b1, t);
+	vec3 b11 = mix(b1, b2, t);
+	vec3 b21 = mix(b2, b3, t);
+		 		   
+	vec3 b02 = mix(b01, b11, t);
+	vec3 b12 = mix(b11, b21, t);
+		 		   		
+	return vec3(b12 - b02);
+}
+
+// Hughes-Moller method for computing orthonormal vector
+void hughesMoellerMethod(vec3 n, out vec3 b1, out vec3 b2) {
+	if (abs(n.x) > abs(n.z)) {
+		b1 = vec3(-n.y, n.x, 0.f);
+	} else {
+		b1 = vec3(0.f, -n.z, n.y);
+	}
+	b1 = normalize(b1);
+	b2 = normalize(cross(n, b1));
+}
+
+
+void frisvadONB(vec3 n, out vec3 b1, out vec3 b2)
+{
+	if (n.z < -0.9999999f) {
+		b1 = vec3( 0.0f, -1.0f, 0.0f);
+		b2 = vec3(-1.0f, 0.0f, 0.0f);
+		return;
+	 }
+	 const float a = 1.0f / (1.0f + n.z);
+	 const float b = -n.x * n.y * a;
+	 b1 = normalize(vec3(1.0f - n.x * n.x * a, b, -n.x));
+	 b2 = normalize(vec3(b, 1.0f - n.y * n.y * a, -n.y));
 }
 
 void main() {
@@ -184,13 +245,16 @@ void main() {
 
 
 	// caculate orthonormal basis for shading
-	vec3 tangent = normalize(b12 - b02);
+	vec3 tangent = normalize(stupidFunc(u, v));
+	vec3 b_1; 
+	vec3 b_2;
+	//hughesMoellerMethod(tangent, b_1, b_2);
+	frisvadONB(tangent, b_1, b_2);
 	out_u = tangent;
-	vec3 ortho = hughesMoellerMethod(tangent);
-	out_v = ortho;
-	out_w = cross(ortho, tangent);
+	out_v = b_1;
+	out_w = b_2;
 
-	vec3 lightPos = vec3(3.f, 0, 0);
+	vec3 lightPos = vec3(-3.f, 0.f, 0.f);
 	out_lightDir = normalize(lightPos - pos2);
 	mat4 invView = inverse(camera.view); // TODO: compute ahead of time?
 	vec3 cameraPos = vec3(invView[3][0], invView[3][1], invView[3][2]);
