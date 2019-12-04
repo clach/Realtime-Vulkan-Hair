@@ -276,8 +276,8 @@ void main() {
 	float t = in_uv.y;
 	vec3 color = mix(mix(c1, c2, t), mix(c2, c3, t), t);
 
-	float test = getDirectionalAngleBetweenVectors(normalize(projectVectorOntoPlane(w_o, in_u)), in_v, in_u) / (2 * PI);
-	outColor = vec4(test, test, test, 1.0);
+	//float test = getDirectionalAngleBetweenVectors(normalize(projectVectorOntoPlane(w_o, in_u)), in_v, in_u) / (2 * PI);
+	//outColor = vec4(test, test, test, 1.0);
 
 	outColor = vec4(S, 1.0);
 }

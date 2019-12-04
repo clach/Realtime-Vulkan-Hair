@@ -890,7 +890,7 @@ void Renderer::CreateHairPipeline() {
     tessellationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
     tessellationInfo.pNext = NULL;
     tessellationInfo.flags = 0;
-	tessellationInfo.patchControlPoints = 1;
+	tessellationInfo.patchControlPoints = 3;
 
     // --- Create graphics pipeline ---
     VkGraphicsPipelineCreateInfo pipelineInfo = {};

@@ -28,7 +28,7 @@ void main() {
 	float distToCamera = length(in_viewDir[0]);
 	float width = 0.005f * (log(0.1 * distToCamera) + 5.f);
 
-	width *= 0.5;
+	//width *= 0.5;
 	
 	gl_Position = gl_in[0].gl_Position + vec4(-width, 0.0, 0.0, 0.0);
 	out_uv = in_uv[0];
