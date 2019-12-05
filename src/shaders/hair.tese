@@ -18,19 +18,11 @@ layout(location = 2) out vec3 out_v;
 layout(location = 3) out vec3 out_w;
 layout(location = 4) out vec3 out_viewDir;
 layout(location = 5) out vec3 out_lightDir;
+layout(location = 6) out float out_strandWidth;
 
 // https://thebookofshaders.com/10/
-// returns random number between [-1, 1]
 float random(vec2 st) {
     return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
-}
-
-float rnd(vec2 x)
-{
-    int n = int(x.x * 40.0 + x.y * 6400.0);
-    n = (n << 13) ^ n;
-    return 1.0 - float( (n * (n * n * 15731 + 789221) + \
-             1376312589) & 0x7fffffff) / 1073741824.0;
 }
 
 vec3 func(float u, float v) {
@@ -241,13 +233,21 @@ void main() {
 
 	// let width be a function of v with some randomness
 	// TODO: play with randomness, it's the same for each strand rn
-	float width = random(vec2(u, u)) * 0.2 * exp(-pow(v - 0.5, 2.0) / (2.0 * pow(0.2, 2.0)));
-
+	float rand2 = abs(random(vec2(u, u * u)));
+	float dev = 0.f;
+	if (rand2 > 0.95) {
+		//dev = 0.9;
+	} else if (rand2 > 0.8) {
+		//dev = 0.5;
+	} else {
+		//dev = 0.1;
+	}
+	float width = (random(vec2(u, u)) + 0.1) * 0.2 * exp(-pow(v - 0.5, 2.0) / (2.0 * pow(0.2, 2.0)));
 	float uRad = 2.f * PI * u; // remap u to (0, 2pi)
 	vec3 dir = normalize(vec3(cos(uRad), 0.f, sin(uRad)));
 
 	// single stranding tessellation
-	vec3 pos2 = func(u, v) + width * dir;
+	vec3 pos2 = func(u, v) + (width + dev) * dir;
 
 	vec3 pos = mix(pos1, pos2, 0.8);
 
@@ -269,6 +269,10 @@ void main() {
 	vec3 cameraPos = vec3(invView[3][0], invView[3][1], invView[3][2]);
 	out_viewDir = cameraPos - pos2;
 
-	gl_Position = camera.proj * camera.view * vec4(pos1, 1.0);
+	const float rootWidth = 0.075;
+	const float tipWidth = 0.001;
+	out_strandWidth = mix(rootWidth, tipWidth, v);
+
+	gl_Position = camera.proj * camera.view * vec4(pos2, 1.0);
 }
 

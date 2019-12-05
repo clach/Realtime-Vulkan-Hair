@@ -135,6 +135,7 @@ void main() {
 		
 		// Add gravity
 		vec3 force = vec3(0.0, -9.8, 0.0);
+		//force = vec3(0.f);
 		//force += 10.0 * vec3(2.0 * sin(totalTime * 2.0) * cos(currentPos.y * 10.0) * sin((currentPos.y + 5.0) * 15.0), 0.0, -clamp(currentPos.y * 2.0, 0.2, 2.0));
 		//force += 7.0 * fbm(vec2(sin(totalTime), cos(totalTime))) * vec3(2.0 * sin(totalTime * 2.0) * cos(currentPos.y * 10.0) * sin((currentPos.y + 5.0) * 15.0), 0.0, -(currentPos.y + 2.0));
 	

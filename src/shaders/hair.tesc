@@ -2,7 +2,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 #define NUM_CURVE_POINTS 10
 
-layout(vertices = 3) out;
+layout(vertices = 1) out;
 
 layout(location = 0) in vec4[][NUM_CURVE_POINTS] in_curvePoints;
 
@@ -18,8 +18,8 @@ void main() {
 
      //gl_TessLevelInner[0] = 2;
      //gl_TessLevelInner[1] = 8;
-     gl_TessLevelOuter[0] = 32;
-     gl_TessLevelOuter[1] = 32;
+     gl_TessLevelOuter[0] =	8;
+     gl_TessLevelOuter[1] = 42;
      //gl_TessLevelOuter[2] = 8;
      //gl_TessLevelOuter[3] = 8;
 }

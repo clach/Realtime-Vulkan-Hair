@@ -156,6 +156,7 @@ void main() {
 	const vec3 sigma_a = vec3(0.132, 0.212, 0.78); // absorption coeffcient
 	const float eccentricity = 0.85; // eccentricity: [0.85, 1]
 	const vec3 C = vec3(89, 38, 11) * over255;
+	//const vec3 C = vec3(216,192,120) * over255;
 	const float roughness = 0.2;
 	const float shift = 0.005;
 
