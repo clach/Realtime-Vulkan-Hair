@@ -227,7 +227,7 @@ void main() {
 	vec3 c = mix(b02, b12, t);
 
 	// multi-strand tessellation
-	vec3 pos1 = c;
+	vec3 pos = c;
 
 
 
@@ -242,37 +242,68 @@ void main() {
 	} else {
 		//dev = 0.1;
 	}
-	float width = (random(vec2(u, u)) + 0.1) * 0.2 * exp(-pow(v - 0.5, 2.0) / (2.0 * pow(0.2, 2.0)));
-	float uRad = 2.f * PI * u; // remap u to (0, 2pi)
-	vec3 dir = normalize(vec3(cos(uRad), 0.f, sin(uRad)));
+	float width = (random(vec2(3.534 * u, u * 37.19817)) + 0.1) * 0.2 * exp(-pow(v - 0.5, 2.0) / (2.0 * pow(0.2, 2.0)));
+	const float clumpRadius = 0.5f;
+	width = clumpRadius * mix(0.3, 0.1, v) * (rand2 + 0.5);// add this for "curly" hair + random(vec2(u, v)) * 0.1;
+	//float uRad = 2.f * PI * u; // remap u to (0, 2pi)
+	//vec3 dir = normalize(vec3(cos(uRad), 0.f, sin(uRad)));
 
-	// single stranding tessellation
-	vec3 pos2 = func(u, v) + (width + dev) * dir;
-
-	vec3 pos = mix(pos1, pos2, 0.8);
-
+	float u1 = abs(random(vec2(u, u)));
+	float u2 = abs(random(vec2(u, u * u)));
+	float x1 = sqrt(-2.f * log(u1)) * cos(2.f * PI * u2);
+	float x2 = sqrt(-2.f * log(u2)) * cos(2.f * PI * u1);
 
 
 	// caculate orthonormal basis for shading
-	vec3 tangent = normalize(stupidFunc(u, v));
+	//vec3 tangent = normalize(stupidFunc(u, v));
+	vec3 tangent1 = normalize(in_curvePoints[0][segmentSecond].xyz - in_curvePoints[0][segmentFirst].xyz);
+	vec3 tangent2 = normalize(in_curvePoints[1][segmentSecond].xyz - in_curvePoints[1][segmentFirst].xyz);
+	vec3 tangent3 = normalize(in_curvePoints[2][segmentSecond].xyz - in_curvePoints[2][segmentFirst].xyz);
 	vec3 b_1; 
 	vec3 b_2;
 	//hughesMoellerMethod(tangent, b_1, b_2);
-	frisvadONB(tangent, b_1, b_2);
-	out_u = tangent;
+	frisvadONB(tangent1, b_1, b_2);
+	out_u = tangent1;
 	out_v = b_1;
 	out_w = b_2;
 
+
+
+	u1 = (u1 * 2.f) + 1.f;
+	u2 = (u2 * 2.f) + 1.f;
+	vec3 newDir = normalize(x1 * out_v + x2 * out_w);
+
+	// single stranding tessellation
+	vec3 singleStrandPos = func(u, v) + width * newDir;
+
+
+
+	float dist1 = distance(in_curvePoints[0][segmentFirst].xyz, in_curvePoints[1][segmentFirst].xyz);
+	float dist2 = distance(in_curvePoints[1][segmentFirst].xyz, in_curvePoints[2][segmentFirst].xyz);
+	float dist3 = distance(in_curvePoints[2][segmentFirst].xyz, in_curvePoints[0][segmentFirst].xyz);
+	float angle1 = acos(dot(tangent1, tangent2) / (length(tangent1) * length(tangent2)));
+	float angle2 = acos(dot(tangent2, tangent3) / (length(tangent2) * length(tangent3)));
+	float angle3 = acos(dot(tangent1, tangent3) / (length(tangent1) * length(tangent3)));
+	const float maxDist = 0.5f;
+	if (dist1 > maxDist || dist2 > maxDist || dist3 > maxDist) {
+		//pos = singleStrandPos;
+	}
+
+	pos = singleStrandPos;
+
+
+
+
 	vec3 lightPos = vec3(-3.f, 0.f, 0.f);
-	out_lightDir = normalize(lightPos - pos2);
+	out_lightDir = normalize(lightPos - pos);
 	mat4 invView = inverse(camera.view); // TODO: compute ahead of time?
 	vec3 cameraPos = vec3(invView[3][0], invView[3][1], invView[3][2]);
-	out_viewDir = cameraPos - pos2;
+	out_viewDir = cameraPos - pos;
 
 	const float rootWidth = 0.075;
 	const float tipWidth = 0.001;
 	out_strandWidth = mix(rootWidth, tipWidth, v);
 
-	gl_Position = camera.proj * camera.view * vec4(pos2, 1.0);
+	gl_Position = camera.proj * camera.view * vec4(pos, 1.0);
 }
 

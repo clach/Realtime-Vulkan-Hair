@@ -168,6 +168,8 @@ void main() {
 	float theta_o_trans = acos(w_o_trans.z / 1.f) * RAD_TO_DEG;
 
 
+	float lightVec = dot(in_lightDir, in_u);
+	float viewDepSpec = dot(in_viewDir, in_u);
 
 
 	// all angles in degrees
@@ -179,7 +181,9 @@ void main() {
 	//const float phi_o = angleBetweenVectorAndPlane(w_o, in_v) * RAD_TO_DEG;
 	const float phi_o = getDirectionalAngleBetweenVectors(normalize(projectVectorOntoPlane(w_o, in_u)), in_v, in_u) * RAD_TO_DEG;
 
-	const float theta_h = (theta_i + theta_o) / 2.f;
+	float theta_h = (theta_i + theta_o) / 2.f;
+	theta_h = (asin(lightVec) + asin(viewDepSpec)) *RAD_TO_DEG;
+
 	const float theta_d = (theta_o - theta_i) / 2.f;
 
 	const float phi_h = (phi_o + phi_i) / 2.f;
@@ -216,6 +220,8 @@ void main() {
 
 	float cosTheta_d = cos(theta_d * DEG_TO_RAD);
 	float cosPhi_d = cos(phi_d * DEG_TO_RAD);
+	cosPhi_d = dot(normalize(in_lightDir - lightVec * in_u), normalize(in_viewDir - viewDepSpec * in_u));
+
 	float cosPhi_dOver2 = cos((phi_d / 2.f) * DEG_TO_RAD);
 
 	// azimuthal scattering function N

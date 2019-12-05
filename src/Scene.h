@@ -9,6 +9,8 @@
 #include "Model.h"
 #include "Strand.h"
 
+#define DEG_TO_RAD 0.01745329251
+
 using namespace std::chrono;
 
 struct Time {
@@ -24,9 +26,9 @@ struct Collider {
 
 	Collider(glm::vec3 trans, glm::vec3 rot, glm::vec3 scale) {
 		glm::mat4 transMat = glm::translate(trans);
-		glm::mat4 rotXMat = glm::rotate(rot.x, glm::vec3(1.0, 0.0, 0.0));
-		glm::mat4 rotYMat = glm::rotate(rot.y, glm::vec3(0.0, 1.0, 0.0));
-		glm::mat4 rotZMat = glm::rotate(rot.z, glm::vec3(0.0, 0.0, 1.0));
+		glm::mat4 rotXMat = glm::rotate(rot.x * (float)DEG_TO_RAD, glm::vec3(1.0, 0.0, 0.0));
+		glm::mat4 rotYMat = glm::rotate(rot.y * (float)DEG_TO_RAD, glm::vec3(0.0, 1.0, 0.0));
+		glm::mat4 rotZMat = glm::rotate(rot.z * (float)DEG_TO_RAD, glm::vec3(0.0, 0.0, 1.0));
 		glm::mat4 scaleMat = glm::scale(scale);
 
 		this->transform = transMat * rotZMat * rotYMat * rotXMat * scaleMat * glm::mat4(1.0);

@@ -152,6 +152,7 @@ void moveSphere(VkCommandPool commandPool) {
 	renderer->scene->translateSphere(translation);
 	renderer->scene->GetModels().at(1)->translateModel(translation);
 }
+
 int main() {
     static constexpr char* applicationName = "Realtime Vulkan Hair";
     InitializeWindow(640, 480, applicationName);
@@ -214,25 +215,25 @@ int main() {
 	collisionSphere->SetTexture(mannequinDiffuseImage);
 
 	ObjLoader::LoadObj("models/mannequin.obj", vertices, indices);
-	Model* head = new Model(device, transferCommandPool, vertices, indices, glm::scale(glm::vec3(0.98)));
-	head->SetTexture(mannequinDiffuseImage);
+	Model* mannequin = new Model(device, transferCommandPool, vertices, indices, glm::scale(glm::vec3(0.98)));
+	mannequin->SetTexture(mannequinDiffuseImage);
 
 	Hair* hair = new Hair(device, transferCommandPool, "models/mannequin_segment.obj");
 
 	// trans, rot, scale
 	Collider testCollider = Collider(glm::vec3(2.0, 0.0, 1.0), glm::vec3(0.0), glm::vec3(1.0));
-	Collider headCollider = Collider(glm::vec3(0.0, 2.64, 0.08), glm::vec3(-38.270, 0.0, 0.0), glm::vec3(0.844, 1.195, 1.05));
+	//Collider headCollider = Collider(glm::vec3(0.0, 2.64, 0.08), glm::vec3(-38.270, 0.0, 0.0), glm::vec3(0.844, 1.195, 1.05));
+	Collider headCollider = Collider(glm::vec3(0.0, 2.64, 0.08), glm::vec3(-38.270, 0.0, 0.0), glm::vec3(0.817, 1.158, 1.01));
 	Collider neckCollider = Collider(glm::vec3(0.0, 1.35, -0.288), glm::vec3(18.301, 0.0, 0.0), glm::vec3(0.457, 1.0, 0.538));
-	Collider bustCollider = Collider(glm::vec3(0.0, -0.482, -0.061), glm::vec3(-17.260, 0.0, 0.0), glm::vec3(1.078, 1.467, 0.9));
+	Collider bustCollider = Collider(glm::vec3(0.0, -0.380, -0.116), glm::vec3(-17.260, 0.0, 0.0), glm::vec3(1.078, 1.683, 0.974));
 	Collider shoulderRCollider = Collider(glm::vec3(-0.698, 0.087, -0.36), glm::vec3(-20.254, 13.144, 34.5), glm::vec3(0.721, 1.0, 0.724));
 	Collider shoulderLCollider = Collider(glm::vec3(0.698, 0.087, -0.36), glm::vec3(-20.254, 13.144, -34.5), glm::vec3(0.721, 1.0, 0.724));
-
 
 	std::vector<Collider> colliders = { testCollider, headCollider, neckCollider, bustCollider, shoulderRCollider, shoulderLCollider };
 
     Scene* scene = new Scene(device, colliders);
     scene->AddModel(collisionSphere);
-    scene->AddModel(head);
+    scene->AddModel(mannequin);
     scene->AddHair(hair);
 	/*scene->AddCollider(testCollider);
     scene->AddCollider(headCollider);
@@ -243,9 +244,7 @@ int main() {
 
 	//scene->CreateCollidersBuffer(transferCommandPool);
 
-
 	vkDestroyCommandPool(device->GetVkDevice(), transferCommandPool, nullptr);
-
 
     renderer = new Renderer(device, swapChain, scene, camera);
 
@@ -273,7 +272,7 @@ int main() {
 
     delete scene;
 	delete collisionSphere;
-	delete head;
+	delete mannequin;
     delete hair;
     delete camera;
     delete renderer;
