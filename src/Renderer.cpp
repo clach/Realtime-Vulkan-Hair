@@ -16,7 +16,9 @@ Renderer::Renderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* c
     camera(camera) {
 
     CreateCommandPools();
+
     CreateRenderPass();
+	CreateShadowMapRenderPass();
 
     CreateCameraDescriptorSetLayout();
     CreateModelMatrixDescriptorSetLayout();
@@ -39,6 +41,8 @@ Renderer::Renderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* c
     CreateComputeDescriptorSets();
 
     CreateFrameResources();
+	CreateShadowMapFrameResources();
+
     CreateGraphicsPipeline();
     CreateHairPipeline();
     CreateComputePipeline();
@@ -132,6 +136,76 @@ void Renderer::CreateRenderPass() {
     if (vkCreateRenderPass(logicalDevice, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create render pass");
     }
+}
+
+void Renderer::CreateShadowMapRenderPass() {
+	VkAttachmentDescription attachmentDescription{};
+
+	// Depth attachment (shadow map)
+	attachmentDescription.format = VK_FORMAT_D32_SFLOAT;
+	attachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
+	attachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	attachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	attachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	attachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	attachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	attachmentDescription.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; // VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL ??
+	attachmentDescription.flags = 0;
+
+	// Attachment references from subpasses
+	VkAttachmentReference depthAttachmentRef;
+	depthAttachmentRef.attachment = 0;
+	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+	// Subpass 0: shadow map rendering
+	VkSubpassDescription subpass = {};
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass.flags = 0;
+	subpass.inputAttachmentCount = 0;
+	subpass.pInputAttachments = NULL;
+	subpass.colorAttachmentCount = 0;
+	subpass.pColorAttachments = NULL;
+	subpass.pResolveAttachments = NULL;
+	subpass.pDepthStencilAttachment = &depthAttachmentRef;
+	subpass.preserveAttachmentCount = 0;
+	subpass.pPreserveAttachments = NULL;
+
+	std::array<VkSubpassDependency, 2> dependencies;
+	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependencies[0].dstSubpass = 0;
+	//dependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependencies[0].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	//dependencies[0].srcAccessMask = 0;
+	dependencies[0].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+	//dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependencies[0].dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	//dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependencies[0].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+	dependencies[0].dependencyFlags = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependencies[0].dstSubpass = 0;
+	dependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependencies[0].srcAccessMask = 0;
+	dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+
+	// Create render pass
+	VkRenderPassCreateInfo renderPassInfo;
+	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	renderPassInfo.pNext = NULL;
+	renderPassInfo.attachmentCount = 1;
+	renderPassInfo.pAttachments = attachments;
+	renderPassInfo.subpassCount = 1;
+	renderPassInfo.pSubpasses = subpass;
+	renderPassInfo.dependencyCount = 0;
+	renderPassInfo.pDependencies = NULL;
+	renderPassInfo.flags = 0;
+
+	if (vkCreateRenderPass(logicalDevice, &renderPassInfo, NULL, &shadowMapRenderPass) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create render pass");
+	}
 }
 
 void Renderer::CreateCameraDescriptorSetLayout() {
@@ -832,6 +906,62 @@ void Renderer::CreateGraphicsPipeline() {
     vkDestroyShaderModule(logicalDevice, fragShaderModule, nullptr);
 }
 
+void Renderer::CreateShadowMapPipeline() {
+	VkVertexInputBindingDescription vi_binding[1];
+	VkVertexInputAttributeDescription vi_attribs[1];
+
+	// Vertex attribute binding 0, location 0: position
+	vi_binding[0].binding = 0;
+	vi_binding[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+	vi_binding[0].stride = 2 * sizeof(glm::vec3);
+
+	vi_attribs[0].binding = 0;
+	vi_attribs[0].location = 0;
+	vi_attribs[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+	vi_attribs[0].offset = 0;
+
+	VkPipelineVertexInputStateCreateInfo vi;
+	vi.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+	vi.pNext = NULL;
+	vi.flags = 0;
+	vi.vertexBindingDescriptionCount = 1;
+	vi.pVertexBindingDescriptions = vi_binding;
+	vi.vertexAttributeDescriptionCount = 1;
+	vi.pVertexAttributeDescriptions = vi_attribs;
+	
+	VkPipelineShaderStageCreateInfo shaderStages[1];
+	shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	shaderStages[0].pNext = NULL;
+	shaderStages[0].pSpecializationInfo = NULL;
+	shaderStages[0].flags = 0;
+	shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+	shaderStages[0].pName = "main";
+	shaderStages[0].module = ShaderModule::Create("shaders/shadowmap.vert.spv", logicalDevice);
+
+	VkGraphicsPipelineCreateInfo pipelineInfo = {};
+	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	pipelineInfo.stageCount = 1;
+	pipelineInfo.pStages = shaderStages;
+	pipelineInfo.pVertexInputState = &vi; // ???
+	/*pipelineInfo.pInputAssemblyState = &inputAssembly;
+	pipelineInfo.pViewportState = &viewportState;
+	pipelineInfo.pRasterizationState = &rasterizer;
+	pipelineInfo.pMultisampleState = &multisampling;
+	pipelineInfo.pDepthStencilState = &depthStencil;
+	pipelineInfo.pColorBlendState = &colorBlending;*/
+	pipelineInfo.pDynamicState = nullptr;
+	pipelineInfo.layout = graphicsPipelineLayout;
+	pipelineInfo.renderPass = shadowMapRenderPass;
+	pipelineInfo.subpass = 0;
+	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+	pipelineInfo.basePipelineIndex = -1;
+
+	// ????
+	if (vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create graphics pipeline");
+	}
+}
+
 void Renderer::CreateHairPipeline() {
 	// TODO: Make sure all options here have desired settings
 
@@ -1171,6 +1301,77 @@ void Renderer::RecreateFrameResources() {
     RecordCommandBuffers();
 }
 
+void Renderer::CreateShadowMapFrameResources() {
+	// create image
+	VkImageCreateInfo imageInfo = {};
+	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	imageInfo.pNext = NULL;
+	imageInfo.imageType = VK_IMAGE_TYPE_2D;
+	imageInfo.format = VK_FORMAT_D32_SFLOAT; // TODO could be lower probably
+	imageInfo.extent.width = SHADOW_MAP_WIDTH;
+	imageInfo.extent.height = SHADOW_MAP_HEIGHT;
+	imageInfo.extent.depth = 1;
+	imageInfo.mipLevels = 1;
+	imageInfo.arrayLayers = 1;
+	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+	imageInfo.queueFamilyIndexCount = 0;
+	imageInfo.pQueueFamilyIndices = NULL;
+	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	imageInfo.flags = 0;
+
+	VkImage shadowMapImage; // TODO: make this a member variable?
+	if (vkCreateImage(logicalDevice, &imageInfo, nullptr, &shadowMapImage) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create image view");
+	}
+
+	// create image view
+	VkImageViewCreateInfo viewInfo = {};
+	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	viewInfo.pNext = NULL;
+	viewInfo.image = shadowMapImage;
+	viewInfo.format = VK_FORMAT_D32_SFLOAT;
+	viewInfo.components.r = VK_COMPONENT_SWIZZLE_R;
+	viewInfo.components.g = VK_COMPONENT_SWIZZLE_G;
+	viewInfo.components.b = VK_COMPONENT_SWIZZLE_B;
+	viewInfo.components.a = VK_COMPONENT_SWIZZLE_A;
+	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+	viewInfo.subresourceRange.baseMipLevel = 0;
+	viewInfo.subresourceRange.levelCount = 1;
+	viewInfo.subresourceRange.baseArrayLayer = 0;
+	viewInfo.subresourceRange.layerCount = 1;
+	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	viewInfo.flags = 0;
+
+	if (vkCreateImageView(logicalDevice, &viewInfo, nullptr, &shadowMapImageView) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create image view");
+	}
+
+	// create framebufer
+	VkFramebufferCreateInfo framebufferInfo;
+	framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	framebufferInfo.pNext = NULL;
+	framebufferInfo.renderPass = shadowMapRenderPass;
+	framebufferInfo.attachmentCount = 1;
+	framebufferInfo.pAttachments = &shadowMapImageView;
+	framebufferInfo.width = SHADOW_MAP_WIDTH;
+	framebufferInfo.height = SHADOW_MAP_HEIGHT;
+	framebufferInfo.layers = 1;
+	framebufferInfo.flags = 0;
+
+	if (vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &shadowMapFramebuffer) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create framebuffer");
+	}
+}
+
+void Renderer::DestroyShadowMapFrameResources() {
+	// TODO: destroy image also?
+	vkDestroyImageView(logicalDevice, shadowMapImageView, nullptr);
+	vkDestroyFramebuffer(logicalDevice, shadowMapFramebuffer, nullptr);
+}
+
+
 void Renderer::RecordComputeCommandBuffer() {
     // Specify the command pool and number of buffers to allocate
     VkCommandBufferAllocateInfo allocInfo = {};
@@ -1253,6 +1454,78 @@ void Renderer::RecordCommandBuffers() {
         if (vkBeginCommandBuffer(commandBuffers[i], &beginInfo) != VK_SUCCESS) {
             throw std::runtime_error("Failed to begin recording command buffer");
         }
+
+
+
+
+
+		// Begin shadow render pass??
+		VkClearValue shadowMapclearValues[1];
+		shadowMapclearValues[0].depthStencil.depth = 1.0f;
+		shadowMapclearValues[0].depthStencil.stencil = 0;
+
+		VkRenderPassBeginInfo shadowMapRenderPassInfo;
+		shadowMapRenderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		shadowMapRenderPassInfo.pNext = NULL;
+		shadowMapRenderPassInfo.renderPass = shadowMapRenderPass;
+		shadowMapRenderPassInfo.framebuffer = shadowMapFramebuffer;
+		shadowMapRenderPassInfo.renderArea.offset.x = 0;
+		shadowMapRenderPassInfo.renderArea.offset.y = 0;
+		shadowMapRenderPassInfo.renderArea.extent.width = SHADOW_MAP_WIDTH;
+		shadowMapRenderPassInfo.renderArea.extent.height = SHADOW_MAP_HEIGHT;
+		shadowMapRenderPassInfo.clearValueCount = 1;
+		shadowMapRenderPassInfo.pClearValues = shadowMapclearValues;
+
+		vkCmdBeginRenderPass(commandBuffers[i], &shadowMapRenderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+		VkViewport viewport;
+		viewport.height = SHADOW_MAP_HEIGHT;
+		viewport.width = SHADOW_MAP_WIDTH;
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
+		viewport.x = 0;
+		viewport.y = 0;
+		vkCmdSetViewport(commandBuffers[i], 0, 1, &viewport);
+
+		VkRect2D scissor;
+		scissor.extent.width = SHADOW_MAP_WIDTH;
+		scissor.extent.height = SHADOW_MAP_HEIGHT;
+		scissor.offset.x = 0;
+		scissor.offset.y = 0;
+		vkCmdSetScissor(commandBuffers[i], 0, 1, &scissor);
+
+		vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, shadow_map_pipeline);
+
+		const VkDeviceSize offsets[1] = { 0 };
+		vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertex_buf, offsets);
+
+		vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, shadow_map_pipeline_layout, 0, 1, shadow_map_descriptor_set, 0, NULL);
+
+		vkCmdDraw(commandBuffers[i], ...);
+
+		vkCmdEndRenderPass(commandBuffers[i]);
+
+
+		VkPipelineStageFlags shadow_map_wait_stages = 0;
+		VkSubmitInfo submit_info = { };
+		submit_info.pNext = NULL;
+		submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submit_info.waitSemaphoreCount = 0;
+		submit_info.pWaitSemaphores = NULL;
+		submit_info.signalSemaphoreCount = 1;
+		submit_info.pSignalSemaphores = &signal_sem;
+		submit_info.pWaitDstStageMask = 0;
+		submit_info.commandBufferCount = 1;
+		submit_info.pCommandBuffers = &commandBuffers[i];
+
+		vkQueueSubmit(queue, 1, &submit_info, NULL);
+
+
+
+
+
+
+
 
         // Begin the render pass
         VkRenderPassBeginInfo renderPassInfo = {};
@@ -1426,6 +1699,7 @@ Renderer::~Renderer() {
 
     vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
     DestroyFrameResources();
+    DestroyShadowMapFrameResources();
     vkDestroyCommandPool(logicalDevice, computeCommandPool, nullptr);
     vkDestroyCommandPool(logicalDevice, graphicsCommandPool, nullptr);
 }
