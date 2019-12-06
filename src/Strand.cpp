@@ -24,6 +24,7 @@ int GeneratePointsOnMesh(std::string filename, std::vector<glm::vec3>& points, s
 	std::vector<uint32_t> indices;
 	ObjLoader::LoadObj(filename, vertices, indices);
 
+	//for (int i = 0; i < 3; i++)
 	for (int i = 0; i < vertices.size(); i++)
 	{
 		// select vertex at random
@@ -52,6 +53,7 @@ int GeneratePointsOnMesh(std::string filename, std::vector<glm::vec3>& points, s
 		//pointNormals.push_back(n);
 	}
 
+	//return 3;
 	return vertices.size();
 }
 
@@ -67,7 +69,7 @@ Hair::Hair(Device* device, VkCommandPool commandPool, std::string objFilename) :
 	for (int i = 0; i < numStrands; i++) {
 		Strand currentStrand = Strand();
 		float length = MIN_LENGTH + (generateRandomFloat() * (MAX_LENGTH - MIN_LENGTH));
-		length = 4.0;
+		length = 2.0;
 
 		glm::vec3 currPoint = pointsOnMesh[i];
 		for (int j = 0; j < NUM_CURVE_POINTS; j++) {
@@ -76,8 +78,8 @@ Hair::Hair(Device* device, VkCommandPool commandPool, std::string objFilename) :
 			currentStrand.correctionVecs[j] = glm::vec4(0.0);
 			glm::vec3 dir = pointNormals[i];
 			dir[2] -= 2.0;
-			dir[1] += 1.0;
-			dir[0] += 0.08;
+			dir[1] += 5.0;
+			dir[0] += 0.05;
 			currPoint += (float)(length / (NUM_CURVE_POINTS - 1.0)) * dir;
 		}
 

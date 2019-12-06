@@ -231,7 +231,7 @@ int main() {
 
 	std::vector<Collider> colliders = { testCollider, headCollider, neckCollider, bustCollider, shoulderRCollider, shoulderLCollider };
 
-    Scene* scene = new Scene(device, colliders);
+    Scene* scene = new Scene(device, transferCommandPool, colliders);
     scene->AddModel(collisionSphere);
     scene->AddModel(mannequin);
     scene->AddHair(hair);

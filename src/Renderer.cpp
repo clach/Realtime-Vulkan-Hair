@@ -23,6 +23,7 @@ Renderer::Renderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* c
 	CreateHairDescriptorSetLayout();
     CreateTimeDescriptorSetLayout();
 	CreateCollidersDescriptorSetLayout();
+	CreateGridDescriptorSetLayout();
     CreateComputeDescriptorSetLayout();
 
     CreateDescriptorPool();
@@ -32,6 +33,7 @@ Renderer::Renderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* c
     CreateHairDescriptorSets();
     CreateTimeDescriptorSet();
 	CreateCollidersDescriptorSets();
+	CreateGridDescriptorSets();
     CreateComputeDescriptorSets();
 
     CreateFrameResources();
@@ -245,6 +247,27 @@ void Renderer::CreateCollidersDescriptorSetLayout() {
 	}
 }
 
+void Renderer::CreateGridDescriptorSetLayout() {
+	VkDescriptorSetLayoutBinding gridValuesLayoutBinding = {};
+	gridValuesLayoutBinding.binding = 0;										// binding value in compute shader
+	gridValuesLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	gridValuesLayoutBinding.descriptorCount = 1;
+	gridValuesLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+	gridValuesLayoutBinding.pImmutableSamplers = nullptr;
+
+	std::vector<VkDescriptorSetLayoutBinding> bindings = { gridValuesLayoutBinding };
+
+	// Create the descriptor set layout
+	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+	layoutInfo.pBindings = bindings.data();
+
+	if (vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &gridDescriptorSetLayout) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create descriptor set layout");
+	}
+}
+
 void Renderer::CreateComputeDescriptorSetLayout() {
     // NOTE: Remember this is like a class definition stating what types of information
     // will be stored at each binding
@@ -298,14 +321,15 @@ void Renderer::CreateDescriptorPool() {
 		// Collision objects (compute)
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , 1 },
 
-        // TODO: Add any additional types and counts of descriptors you will need to allocate
+		// Grid (compute)
+		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER , 1 },
     };
 
     VkDescriptorPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = 7; // TODO: idk what determines this number
+    poolInfo.maxSets = 8; // TODO: idk what determines this number
 
     if (vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create descriptor pool");
@@ -506,6 +530,41 @@ void Renderer::CreateCollidersDescriptorSets() {
 	descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	descriptorWrites[0].descriptorCount = 1;
 	descriptorWrites[0].pBufferInfo = &colliderBufferInfo;
+	descriptorWrites[0].pImageInfo = nullptr;
+	descriptorWrites[0].pTexelBufferView = nullptr;
+
+	// Update descriptor sets
+	vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+}
+
+void Renderer::CreateGridDescriptorSets() {
+	// Describe the desciptor set
+	VkDescriptorSetLayout layouts[] = { gridDescriptorSetLayout };
+	VkDescriptorSetAllocateInfo allocInfo = {};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = descriptorPool;
+	allocInfo.descriptorSetCount = 1;
+	allocInfo.pSetLayouts = layouts;
+
+	// Allocate descriptor sets
+	if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, &gridDescriptorSets) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to allocate descriptor set");
+	}
+
+	// Configure the descriptors to refer to buffers
+	VkDescriptorBufferInfo gridBufferInfo = {};
+	gridBufferInfo.buffer = scene->GetGridBuffer();
+	gridBufferInfo.offset = 0;
+	gridBufferInfo.range = scene->GetGrid().size() * sizeof(GridCell);
+
+	std::array<VkWriteDescriptorSet, 1> descriptorWrites = {};
+	descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	descriptorWrites[0].dstSet = gridDescriptorSets;
+	descriptorWrites[0].dstBinding = 0;
+	descriptorWrites[0].dstArrayElement = 0;
+	descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	descriptorWrites[0].descriptorCount = 1;
+	descriptorWrites[0].pBufferInfo = &gridBufferInfo;
 	descriptorWrites[0].pImageInfo = nullptr;
 	descriptorWrites[0].pTexelBufferView = nullptr;
 
@@ -933,7 +992,7 @@ void Renderer::CreateComputePipeline() {
     computeShaderStageInfo.module = computeShaderModule;
     computeShaderStageInfo.pName = "main";
 
-    std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, timeDescriptorSetLayout, collidersDescriptorSetLayout, computeDescriptorSetLayout };
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, timeDescriptorSetLayout, collidersDescriptorSetLayout, gridDescriptorSetLayout, computeDescriptorSetLayout };
 
     // Create pipeline layout
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
@@ -1090,6 +1149,11 @@ void Renderer::RecordComputeCommandBuffer() {
         throw std::runtime_error("Failed to begin recording compute command buffer");
     }
 
+	/*std::vector<uint32_t> data = std::vector<uint32_t>();
+	data.resize(scene->GetGrid().size() * 4, uint32_t(0));*/
+
+
+
     // Bind to the compute pipeline
     vkCmdBindPipeline(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline);
 
@@ -1102,10 +1166,15 @@ void Renderer::RecordComputeCommandBuffer() {
 	// Bind descriptor set for collider uniforms
     vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 2, 1, &collidersDescriptorSets, 0, nullptr);
 
+	// Bind descriptor set for grid uniforms
+	vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 3, 1, &gridDescriptorSets, 0, nullptr);
+	vkCmdFillBuffer(computeCommandBuffer, scene->GetGridBuffer(), 0, scene->GetGrid().size() * sizeof(GridCell), 0);
+
+
 	// TODO: for each group of strands, bind its descriptor set and dispatch
 	// Check these function inputs.  Uncomment dispatch when ready to run compute shader.
 	for (int i = 0; i < scene->GetHair().size(); ++i) {
-		vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 3 + i, 1, &computeDescriptorSets[i], 0, nullptr);
+		vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 4 + i, 1, &computeDescriptorSets[i], 0, nullptr);
 		vkCmdDispatch(computeCommandBuffer, (int)ceil((scene->GetHair()[i]->GetNumStrands() + WORKGROUP_SIZE - 1) / WORKGROUP_SIZE), 1, 1);
 	}
 
@@ -1265,23 +1334,23 @@ void Renderer::Frame() {
 }
 
 
-void Renderer::UpdateShere() {
-	VkCommandBufferBeginInfo beginInfo = {};
-	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-	beginInfo.pInheritanceInfo = nullptr;
-
-	// ~ Start recording ~
-	if (vkBeginCommandBuffer(computeCommandBuffer, &beginInfo) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to begin recording compute command buffer");
-	}	
-	
-	vkCmdUpdateBuffer(computeCommandBuffer, this->scene->GetCollidersBuffer(), 0, sizeof(Collider) * this->scene->GetColliders().size(), this->scene->GetColliders().data());
-
-	if (vkEndCommandBuffer(computeCommandBuffer) != VK_SUCCESS) {
-		throw std::runtime_error("Failed to record compute command buffer");
-	}
-}
+//void Renderer::UpdateShere() {
+//	VkCommandBufferBeginInfo beginInfo = {};
+//	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+//	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+//	beginInfo.pInheritanceInfo = nullptr;
+//
+//	// ~ Start recording ~
+//	if (vkBeginCommandBuffer(computeCommandBuffer, &beginInfo) != VK_SUCCESS) {
+//		throw std::runtime_error("Failed to begin recording compute command buffer");
+//	}	
+//	
+//	vkCmdUpdateBuffer(computeCommandBuffer, this->scene->GetCollidersBuffer(), 0, sizeof(Collider) * this->scene->GetColliders().size(), this->scene->GetColliders().data());
+//
+//	if (vkEndCommandBuffer(computeCommandBuffer) != VK_SUCCESS) {
+//		throw std::runtime_error("Failed to record compute command buffer");
+//	}
+//}
 
 Renderer::~Renderer() {
     vkDeviceWaitIdle(logicalDevice);
@@ -1301,6 +1370,7 @@ Renderer::~Renderer() {
     vkDestroyDescriptorSetLayout(logicalDevice, modelDescriptorSetLayout, nullptr);
     vkDestroyDescriptorSetLayout(logicalDevice, timeDescriptorSetLayout, nullptr);
     vkDestroyDescriptorSetLayout(logicalDevice, collidersDescriptorSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(logicalDevice, gridDescriptorSetLayout, nullptr);
 	vkDestroyDescriptorSetLayout(logicalDevice, hairDescriptorSetLayout, nullptr);
 
     vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);

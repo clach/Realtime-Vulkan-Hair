@@ -23,6 +23,7 @@ public:
 	void CreateHairDescriptorSetLayout();
     void CreateTimeDescriptorSetLayout();
     void CreateCollidersDescriptorSetLayout();
+	void CreateGridDescriptorSetLayout();
     void CreateComputeDescriptorSetLayout();
 
     void CreateDescriptorPool();
@@ -32,6 +33,7 @@ public:
     void CreateHairDescriptorSets();
     void CreateTimeDescriptorSet();
     void CreateCollidersDescriptorSets();
+	void CreateGridDescriptorSets();
     void CreateComputeDescriptorSets();
 
     void CreateGraphicsPipeline();
@@ -45,7 +47,7 @@ public:
     void RecordCommandBuffers();
     void RecordComputeCommandBuffer();
 
-	void UpdateShere();
+	//void UpdateShere();
 
     void Frame();
 
@@ -65,6 +67,7 @@ private:
     VkDescriptorSetLayout hairDescriptorSetLayout;
 	VkDescriptorSetLayout timeDescriptorSetLayout;
 	VkDescriptorSetLayout collidersDescriptorSetLayout;
+	VkDescriptorSetLayout gridDescriptorSetLayout;
 	VkDescriptorSetLayout computeDescriptorSetLayout;
     
     VkDescriptorPool descriptorPool;
@@ -74,6 +77,7 @@ private:
 	std::vector<VkDescriptorSet> hairDescriptorSets;
     VkDescriptorSet timeDescriptorSet;
 	VkDescriptorSet collidersDescriptorSets;
+	VkDescriptorSet gridDescriptorSets;
 	std::vector<VkDescriptorSet> computeDescriptorSets;
 
     VkPipelineLayout graphicsPipelineLayout;
