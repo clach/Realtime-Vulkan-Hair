@@ -50,11 +50,13 @@ layout(set = 3, binding = 1) buffer NumStrands {
 
 bool EllipsoidCollision(Collider c, vec3 point) {
 	vec4 transformedPoint = c.inv * vec4(point, 1.0);
-	return (distance(transformedPoint.xyz, vec3(0.0)) < 1.0);
+	return (distance(transformedPoint.xyz, vec3(0.0)) <= 1.0);
 }
 
 vec3 GetEllipsoidNormal(Collider c, vec3 point) {
-	vec3 normal = vec3(c.inv * vec4(point, 0.0));
+//	vec3 normal = vec3(c.inv * vec4(point, 0.0));
+//	return normalize(vec3(c.invTrans * vec4(normal, 0.0)));
+	vec3 normal = normalize(vec3(c.inv * vec4(point, 1.0)));
 	return normalize(vec3(c.invTrans * vec4(normal, 0.0)));
 }
 
@@ -135,6 +137,7 @@ void main() {
 		
 		// Add gravity
 		vec3 force = vec3(0.0, -9.8, 0.0);
+		//force = vec3(0.f);
 		//force += 10.0 * vec3(2.0 * sin(totalTime * 2.0) * cos(currentPos.y * 10.0) * sin((currentPos.y + 5.0) * 15.0), 0.0, -clamp(currentPos.y * 2.0, 0.2, 2.0));
 		//force += 7.0 * fbm(vec2(sin(totalTime), cos(totalTime))) * vec3(2.0 * sin(totalTime * 2.0) * cos(currentPos.y * 10.0) * sin((currentPos.y + 5.0) * 15.0), 0.0, -(currentPos.y + 2.0));
 	
@@ -144,13 +147,13 @@ void main() {
 
 		for (int j = 0; j < NUM_COLLIDERS; j++) {
 			Collider c = colliders[j];
-
+		
 			// Add penalty force to push hair outside of collision object
 			if (EllipsoidCollision(c, currentPos.xyz)) {
 //				collisionCount++;
 				float k = 2000.0; // spring constant, as large as possible without exploding
 				float d = distance(GetPointOnEllipsoid(c, currentPos.xyz), currentPos.xyz);
-				vec3 normal = normalize(GetEllipsoidNormal(c, currentPos.xyz)); // normal of collision surface at point of collision
+				vec3 normal = GetEllipsoidNormal(c, currentPos.xyz); // normal of collision surface at point of collision
 				//normal = normalize(currentPos.xyz - vec3(c.transform * vec4(0.0, 0.0, 0.0, 1.0)));
 				force += vec3(k * d * normal); // penalty spring force
 //				force += vec3(k * d * normal);
@@ -159,9 +162,6 @@ void main() {
 				tempDamp = 0.999;
 			} 
 		}
-//		if (collisionCount > 0) {
-//			force += (1.0 / float(collisionCount)) * addedForce;
-//		}
 
 		// Get predicted position based on position, velocity, and force
 		vec3 predictedPos = currentPos + dt * currentVel + dt * dt * force;
