@@ -1688,7 +1688,6 @@ void Renderer::RecordCommandBuffers() {
 
 
 
-
         // Second pass: normal graphics and hair ----------------------------------------
         VkRenderPassBeginInfo renderPassInfo = {};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
