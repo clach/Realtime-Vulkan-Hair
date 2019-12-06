@@ -1149,6 +1149,11 @@ void Renderer::RecordComputeCommandBuffer() {
         throw std::runtime_error("Failed to begin recording compute command buffer");
     }
 
+	/*std::vector<uint32_t> data = std::vector<uint32_t>();
+	data.resize(scene->GetGrid().size() * 4, uint32_t(0));*/
+
+
+
     // Bind to the compute pipeline
     vkCmdBindPipeline(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipeline);
 
@@ -1163,6 +1168,8 @@ void Renderer::RecordComputeCommandBuffer() {
 
 	// Bind descriptor set for grid uniforms
 	vkCmdBindDescriptorSets(computeCommandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, computePipelineLayout, 3, 1, &gridDescriptorSets, 0, nullptr);
+	vkCmdFillBuffer(computeCommandBuffer, scene->GetGridBuffer(), 0, scene->GetGrid().size() * sizeof(GridCell), 0);
+
 
 	// TODO: for each group of strands, bind its descriptor set and dispatch
 	// Check these function inputs.  Uncomment dispatch when ready to run compute shader.

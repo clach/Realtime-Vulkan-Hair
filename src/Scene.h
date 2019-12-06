@@ -86,6 +86,7 @@ public:
     void AddCollider(Collider collider);
 
 	void translateSphere(glm::vec3 translation);
+	void clearGrid();
 
     VkBuffer GetTimeBuffer() const;
     VkBuffer GetCollidersBuffer() const;

@@ -11,13 +11,14 @@ Scene::Scene(Device* device, VkCommandPool commandPool, std::vector<Collider> co
 	memcpy(mappedData2, this->colliders.data(), sizeof(Collider) * this->colliders.size());
 
 	this->grid = std::vector<GridCell>();
-	grid.resize(64 * 64 * 64, GridCell(glm::ivec3(0), 0));
+	int d = 64;
+	grid.resize(d * d * d, GridCell(glm::ivec3(0), 0));
 
 	BufferUtils::CreateBufferFromData(device, commandPool, grid.data(), grid.size() * sizeof(GridCell), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, gridBuffer, gridBufferMemory);
 
 	//BufferUtils::CreateBuffer(device, sizeof(glm::vec3) * this->grid.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, gridBuffer, gridBufferMemory);
-	//vkMapMemory(device->GetVkDevice(), gridBufferMemory, 0, sizeof(glm::vec3) * this->grid.size(), 0, &mappedData3);
-	//memcpy(mappedData3, this->grid.data(), sizeof(glm::vec3) * this->grid.size());
+	/*vkMapMemory(device->GetVkDevice(), gridBufferMemory, 0, sizeof(GridCell) * this->grid.size(), 0, &mappedData3);
+	memcpy(mappedData3, this->grid.data(), sizeof(GridCell) * this->grid.size());*/
 }
 
 const std::vector<Model*>& Scene::GetModels() const {
@@ -87,6 +88,16 @@ void Scene::translateSphere(glm::vec3 translation) {
 	}
 	//vkMapMemory(device->GetVkDevice(), collidersBufferMemory, 0, sizeof(Collider) * this->colliders.size(), 0, &mappedData2);
 	memcpy(mappedData2, this->colliders.data(), sizeof(Collider) * this->colliders.size());
+}
+
+void Scene::clearGrid() {
+	//vkCmdFillBuffer(this->gridBuffer, this->gridBuffer, 0, );
+	/*for (GridCell g : grid) {
+		g.density = 0;
+		g.velocity = glm::ivec3(0);
+	}
+	memcpy(mappedData3, this->grid.data(), sizeof(GridCell) * this->grid.size());*/
+
 }
 
 
