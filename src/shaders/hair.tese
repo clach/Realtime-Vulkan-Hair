@@ -307,7 +307,7 @@ void main() {
 
 	u1 = (u1 * 2.f) + 1.f;
 	u2 = (u2 * 2.f) + 1.f;
-	vec3 newDir = normalize(x1 * out_v + x2 * out_w);
+	//vec3 newDir = normalize(x1 * out_v + x2 * out_w);
 
 	// single stranding tessellation
 	vec3 singleStrandPos = func(u, v) + width * dir;
