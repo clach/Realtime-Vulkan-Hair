@@ -5,9 +5,6 @@
 #include "Scene.h"
 #include "Camera.h"
 
-const float SHADOW_MAP_WIDTH = 600;
-const float SHADOW_MAP_HEIGHT = 600;
-
 class Renderer {
 public:
     Renderer() = delete;
@@ -19,7 +16,7 @@ public:
 
     void CreateCommandPools();
 
-	void CreateDepthImage();
+	//void CreateDepthImage();
 
     void CreateRenderPass();
 	void CreateShadowMapRenderPass();
@@ -93,10 +90,12 @@ private:
 	std::vector<VkDescriptorSet> computeDescriptorSets;
 
     VkPipelineLayout graphicsPipelineLayout;
+    VkPipelineLayout shadowMapPipelineLayout;
     VkPipelineLayout hairPipelineLayout;
     VkPipelineLayout computePipelineLayout;
 
     VkPipeline graphicsPipeline;
+    VkPipeline shadowMapPipeline;
     VkPipeline hairPipeline;
     VkPipeline computePipeline;
 
@@ -106,8 +105,11 @@ private:
     VkImageView depthImageView;
     std::vector<VkFramebuffer> framebuffers;
 
+	VkImage shadowMapImage;
+	VkDeviceMemory shadowMapImageMemory;
 	VkImageView shadowMapImageView;
 	VkFramebuffer shadowMapFramebuffer;
+	VkSampler shadowMapSampler;
 
     std::vector<VkCommandBuffer> commandBuffers;
     VkCommandBuffer computeCommandBuffer;

@@ -245,8 +245,8 @@ void main() {
 	float width = (random(vec2(3.534 * u, u * 37.19817)) + 0.1) * 0.2 * exp(-pow(v - 0.5, 2.0) / (2.0 * pow(0.2, 2.0)));
 	const float clumpRadius = 0.5f;
 	width = clumpRadius * mix(0.3, 0.1, v) * (rand2 + 0.5);// add this for "curly" hair + random(vec2(u, v)) * 0.1;
-	//float uRad = 2.f * PI * u; // remap u to (0, 2pi)
-	//vec3 dir = normalize(vec3(cos(uRad), 0.f, sin(uRad)));
+	float uRad = 2.f * PI * u; // remap u to (0, 2pi)
+	vec3 dir = normalize(vec3(cos(uRad), 0.f, sin(uRad)));
 
 	float u1 = abs(random(vec2(u, u)));
 	float u2 = abs(random(vec2(u, u * u)));
@@ -271,10 +271,10 @@ void main() {
 
 	u1 = (u1 * 2.f) + 1.f;
 	u2 = (u2 * 2.f) + 1.f;
-	vec3 newDir = normalize(x1 * out_v + x2 * out_w);
+	//vec3 newDir = normalize(x1 * out_v + x2 * out_w);
 
 	// single stranding tessellation
-	vec3 singleStrandPos = func(u, v) + width * newDir;
+	vec3 singleStrandPos = func(u, v) + width * dir;
 
 
 
