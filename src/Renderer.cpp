@@ -6,19 +6,20 @@
 #include "Camera.h"
 #include "Image.h"
 
-#define SHADOWMAP_WIDTH 600
-#define SHADOWMAP_HEIGHT 600
+#define SHADOWMAP_WIDTH 1080
+#define SHADOWMAP_HEIGHT 720
 #define DEPTH_FORMAT VK_FORMAT_D16_UNORM
 #define SHADOWMAP_FILTER VK_FILTER_LINEAR
 
 static constexpr unsigned int WORKGROUP_SIZE = 32;
 
-Renderer::Renderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* camera)
+Renderer::Renderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* camera, Camera* shadowCamera)
   : device(device),
     logicalDevice(device->GetVkDevice()),
     swapChain(swapChain),
     scene(scene),
-    camera(camera) {
+    camera(camera),
+	shadowCamera(shadowCamera) {
 
     CreateCommandPools();
 
@@ -35,7 +36,11 @@ Renderer::Renderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* c
 
     CreateDescriptorPool();
 
+	CreateFrameResources();
+	CreateShadowMapFrameResources();
+
     CreateCameraDescriptorSet();
+    CreateShadowCameraDescriptorSet();
     CreateModelDescriptorSets();
     CreateHairDescriptorSets();
     CreateTimeDescriptorSet();
@@ -43,11 +48,8 @@ Renderer::Renderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* c
 	CreateGridDescriptorSets();
     CreateComputeDescriptorSets();
 
-    CreateFrameResources();
-	CreateShadowMapFrameResources();
-
-    CreateGraphicsPipeline();
 	CreateShadowMapPipeline();
+    CreateGraphicsPipeline();
     CreateHairPipeline();
     CreateComputePipeline();
 
@@ -153,7 +155,7 @@ void Renderer::CreateShadowMapRenderPass() {
 	attachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	attachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	attachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	attachmentDescription.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; // VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL ??
+	attachmentDescription.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 	attachmentDescription.flags = 0;
 
 	// Attachment references from subpasses
@@ -177,37 +179,32 @@ void Renderer::CreateShadowMapRenderPass() {
 	std::array<VkSubpassDependency, 2> dependencies;
 	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
 	dependencies[0].dstSubpass = 0;
-	//dependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 	dependencies[0].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-	//dependencies[0].srcAccessMask = 0;
-	dependencies[0].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-	//dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 	dependencies[0].dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-	//dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependencies[0].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
 	dependencies[0].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 	dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
 	dependencies[1].srcSubpass = 0;
 	dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
 	dependencies[1].srcStageMask = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-	dependencies[1].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 	dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	dependencies[1].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 	dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 	dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
 	// Create render pass
-	VkRenderPassCreateInfo renderPassInfo;
-	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	renderPassInfo.pNext = NULL;
-	renderPassInfo.attachmentCount = 1;
-	renderPassInfo.pAttachments = &attachmentDescription;
-	renderPassInfo.subpassCount = 1;
-	renderPassInfo.pSubpasses = &subpass;
-	renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
-	renderPassInfo.pDependencies = dependencies.data();
-	renderPassInfo.flags = 0;
+	VkRenderPassCreateInfo renderPassCreateInfo;
+	renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	renderPassCreateInfo.pNext = NULL;
+	renderPassCreateInfo.attachmentCount = 1;
+	renderPassCreateInfo.pAttachments = &attachmentDescription;
+	renderPassCreateInfo.subpassCount = 1;
+	renderPassCreateInfo.pSubpasses = &subpass;
+	renderPassCreateInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
+	renderPassCreateInfo.pDependencies = dependencies.data();
 
-	if (vkCreateRenderPass(logicalDevice, &renderPassInfo, NULL, &shadowMapRenderPass) != VK_SUCCESS) {
+	if (vkCreateRenderPass(logicalDevice, &renderPassCreateInfo, NULL, &shadowMapRenderPass) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create render pass");
 	}
 }
@@ -270,7 +267,14 @@ void Renderer::CreateHairDescriptorSetLayout() {
 	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 	uboLayoutBinding.pImmutableSamplers = nullptr;
 
-	std::vector<VkDescriptorSetLayoutBinding> bindings = { uboLayoutBinding };
+	VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
+	samplerLayoutBinding.binding = 1;
+	samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	samplerLayoutBinding.descriptorCount = 1;
+	samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	samplerLayoutBinding.pImmutableSamplers = nullptr;
+
+	std::vector<VkDescriptorSetLayoutBinding> bindings = { uboLayoutBinding, samplerLayoutBinding };
 
 	// Create the descriptor set layout
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
@@ -384,10 +388,10 @@ void Renderer::CreateDescriptorPool() {
     // Describe which descriptor types that the descriptor sets will contain
     std::vector<VkDescriptorPoolSize> poolSizes = {
         // Camera
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , 1},
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , 2},
 
-        // Models
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER , static_cast<uint32_t>(scene->GetModels().size()) },
+        // Models + Strands
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER , static_cast<uint32_t>(scene->GetModels().size() + scene->GetHair().size()) },
 
         // Models + Strands
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , static_cast<uint32_t>(scene->GetModels().size() + scene->GetHair().size()) },
@@ -409,7 +413,7 @@ void Renderer::CreateDescriptorPool() {
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = 8; // TODO: idk what determines this number
+    poolInfo.maxSets = 10; // TODO: idk what determines this number
 
     if (vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create descriptor pool");
@@ -449,6 +453,42 @@ void Renderer::CreateCameraDescriptorSet() {
 
     // Update descriptor sets
     vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+}
+
+
+void Renderer::CreateShadowCameraDescriptorSet() {
+	// Describe the desciptor set
+	VkDescriptorSetLayout layouts[] = { cameraDescriptorSetLayout };
+	VkDescriptorSetAllocateInfo allocInfo = {};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = descriptorPool;
+	allocInfo.descriptorSetCount = 1;
+	allocInfo.pSetLayouts = layouts;
+
+	// Allocate descriptor sets
+	if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, &shadowCameraDescriptorSet) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to allocate descriptor set");
+	}
+
+	// Configure the descriptors to refer to buffers
+	VkDescriptorBufferInfo cameraBufferInfo = {};
+	cameraBufferInfo.buffer = shadowCamera->GetBuffer();
+	cameraBufferInfo.offset = 0;
+	cameraBufferInfo.range = sizeof(CameraBufferObject);
+
+	std::array<VkWriteDescriptorSet, 1> descriptorWrites = {};
+	descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	descriptorWrites[0].dstSet = shadowCameraDescriptorSet;
+	descriptorWrites[0].dstBinding = 0;
+	descriptorWrites[0].dstArrayElement = 0;
+	descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	descriptorWrites[0].descriptorCount = 1;
+	descriptorWrites[0].pBufferInfo = &cameraBufferInfo;
+	descriptorWrites[0].pImageInfo = nullptr;
+	descriptorWrites[0].pTexelBufferView = nullptr;
+
+	// Update descriptor sets
+	vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
 
 void Renderer::CreateModelDescriptorSets() {
@@ -524,7 +564,7 @@ void Renderer::CreateHairDescriptorSets() {
 		throw std::runtime_error("Failed to allocate descriptor set");
 	}
 
-	std::vector<VkWriteDescriptorSet> descriptorWrites(hairDescriptorSets.size());
+	std::vector<VkWriteDescriptorSet> descriptorWrites(2 * hairDescriptorSets.size());
 
 	for (uint32_t i = 0; i < scene->GetHair().size(); ++i) {
 		VkDescriptorBufferInfo hairBufferInfo = {};
@@ -532,15 +572,29 @@ void Renderer::CreateHairDescriptorSets() {
 		hairBufferInfo.offset = 0;
 		hairBufferInfo.range = sizeof(ModelBufferObject);
 
-		descriptorWrites[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[i].dstSet = hairDescriptorSets[i];
-		descriptorWrites[i].dstBinding = 0;
-		descriptorWrites[i].dstArrayElement = 0;
-		descriptorWrites[i].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		descriptorWrites[i].descriptorCount = 1;
-		descriptorWrites[i].pBufferInfo = &hairBufferInfo;
-		descriptorWrites[i].pImageInfo = nullptr;
-		descriptorWrites[i].pTexelBufferView = nullptr;
+		// Bind image and sampler resources to the descriptor
+		VkDescriptorImageInfo imageInfo = {};
+		imageInfo.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+		imageInfo.imageView = shadowMapImageView;
+		imageInfo.sampler = shadowMapSampler;
+
+		descriptorWrites[2 * i + 0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[2 * i + 0].dstSet = hairDescriptorSets[i];
+		descriptorWrites[2 * i + 0].dstBinding = 0;
+		descriptorWrites[2 * i + 0].dstArrayElement = 0;
+		descriptorWrites[2 * i + 0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrites[2 * i + 0].descriptorCount = 1;
+		descriptorWrites[2 * i + 0].pBufferInfo = &hairBufferInfo;
+		descriptorWrites[2 * i + 0].pImageInfo = nullptr;
+		descriptorWrites[2 * i + 0].pTexelBufferView = nullptr;
+
+		descriptorWrites[2 * i + 1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[2 * i + 1].dstSet = hairDescriptorSets[i];
+		descriptorWrites[2 * i + 1].dstBinding = 1;
+		descriptorWrites[2 * i + 1].dstArrayElement = 0;
+		descriptorWrites[2 * i + 1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[2 * i + 1].descriptorCount = 1;
+		descriptorWrites[2 * i + 1].pImageInfo = &imageInfo;
 	}
 
 	// Update descriptor sets
@@ -927,7 +981,7 @@ void Renderer::CreateShadowMapPipeline() {
 	// Input Assembly
 	VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
 	inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_PATCH_LIST; // TODO: should this be something else (also for hair pipeline)
+	inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
 	inputAssembly.primitiveRestartEnable = VK_FALSE;
 
 	// Viewports and Scissors (rectangles that define in which regions pixels are stored)
@@ -1062,11 +1116,15 @@ void Renderer::CreateShadowMapPipeline() {
 	if (vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &shadowMapPipeline) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create shadow map pipeline");
 	}
+
+	vkDestroyShaderModule(logicalDevice, vertShaderModule, nullptr);
+	vkDestroyShaderModule(logicalDevice, tescShaderModule, nullptr);
+	vkDestroyShaderModule(logicalDevice, teseShaderModule, nullptr);
+	vkDestroyShaderModule(logicalDevice, geomShaderModule, nullptr);
+	//vkDestroyShaderModule(logicalDevice, fragShaderModule, nullptr);
 }
 
 void Renderer::CreateHairPipeline() {
-	// TODO: Make sure all options here have desired settings
-
     // --- Set up programmable shaders ---
     VkShaderModule vertShaderModule = ShaderModule::Create("shaders/hair.vert.spv", logicalDevice);
     VkShaderModule tescShaderModule = ShaderModule::Create("shaders/hair.tesc.spv", logicalDevice);
@@ -1391,80 +1449,25 @@ void Renderer::DestroyFrameResources() {
 }
 
 void Renderer::RecreateFrameResources() {
+	vkDestroyPipeline(logicalDevice, shadowMapPipeline, nullptr);
     vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
     vkDestroyPipeline(logicalDevice, hairPipeline, nullptr);
+    vkDestroyPipelineLayout(logicalDevice, shadowMapPipelineLayout, nullptr);
     vkDestroyPipelineLayout(logicalDevice, graphicsPipelineLayout, nullptr);
     vkDestroyPipelineLayout(logicalDevice, hairPipelineLayout, nullptr);
     vkFreeCommandBuffers(logicalDevice, graphicsCommandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
 
     DestroyFrameResources();
+	DestroyShadowMapFrameResources();
     CreateFrameResources();
+	CreateShadowMapFrameResources();
+    CreateShadowMapPipeline();
     CreateGraphicsPipeline();
     CreateHairPipeline();
     RecordCommandBuffers();
 }
 
 void Renderer::CreateShadowMapFrameResources() {
-	// create image
-	//VkImageCreateInfo imageInfo = {};
-	//imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-	//imageInfo.pNext = NULL;
-	//imageInfo.imageType = VK_IMAGE_TYPE_2D;
-	//imageInfo.format = DEPTH_FORMAT; // TODO could be lower probably
-	//imageInfo.extent.width = SHADOWMAP_WIDTH;
-	//imageInfo.extent.height = SHADOWMAP_HEIGHT;
-	//imageInfo.extent.depth = 1;
-	//imageInfo.mipLevels = 1;
-	//imageInfo.arrayLayers = 1;
-	//imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-	//imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	//imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-	//imageInfo.queueFamilyIndexCount = 0;
-	//imageInfo.pQueueFamilyIndices = NULL;
-	//imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	//imageInfo.flags = 0;
-
-	//if (vkCreateImage(logicalDevice, &imageInfo, nullptr, &shadowMapImage) != VK_SUCCESS) {
-	//	throw std::runtime_error("Failed to create image view");
-	//}
-
-	//// TODO
-	//VkMemoryAllocateInfo memoryAlloc = {};
-	//VkMemoryRequirements memoryReqs;
-	//vkGetImageMemoryRequirements(logicalDevice, shadowMapImage, &memoryReqs);
-	//memoryAlloc.allocationSize = memoryReqs.size;
-	////memoryAlloc.memoryTypeIndex = 
-	//if (vkAllocateMemory(logicalDevice, &memoryAlloc, nullptr, &shadowMapImageMemory) != VK_SUCCESS) {
-	//	throw std::runtime_error("Failed to allocate image memory");
-	//}
-	//if (vkBindImageMemory(logicalDevice, shadowMapImage, shadowMapImageMemory, 0) != VK_SUCCESS) {
-	//	throw std::runtime_error("Failed to bind image memory");
-	//}
-
-	//// create image view
-	//VkImageViewCreateInfo viewInfo = {};
-	//viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-	//viewInfo.pNext = NULL;
-	//viewInfo.image = shadowMapImage;
-	//viewInfo.format = DEPTH_FORMAT;
-	//viewInfo.components.r = VK_COMPONENT_SWIZZLE_R;
-	//viewInfo.components.g = VK_COMPONENT_SWIZZLE_G;
-	//viewInfo.components.b = VK_COMPONENT_SWIZZLE_B;
-	//viewInfo.components.a = VK_COMPONENT_SWIZZLE_A;
-	//viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-	//viewInfo.subresourceRange.baseMipLevel = 0;
-	//viewInfo.subresourceRange.levelCount = 1;
-	//viewInfo.subresourceRange.baseArrayLayer = 0;
-	//viewInfo.subresourceRange.layerCount = 1;
-	//viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	//viewInfo.flags = 0;
-
-	//if (vkCreateImageView(logicalDevice, &viewInfo, nullptr, &shadowMapImageView) != VK_SUCCESS) {
-	//	throw std::runtime_error("Failed to create image view");
-	//}
-
-
-	//should I use this instead ?????
 	Image::Create(device,
 		SHADOWMAP_WIDTH,
 		SHADOWMAP_HEIGHT,
@@ -1477,7 +1480,6 @@ void Renderer::CreateShadowMapFrameResources() {
 	);
 
 	shadowMapImageView = Image::CreateView(device, shadowMapImage, DEPTH_FORMAT, VK_IMAGE_ASPECT_DEPTH_BIT);
-
 
 	// create sampler to sample from
 	VkSamplerCreateInfo sampler = {};
@@ -1516,11 +1518,11 @@ void Renderer::CreateShadowMapFrameResources() {
 }
 
 void Renderer::DestroyShadowMapFrameResources() {
-	// TODO: destroy image also?
-	vkDestroyImage(logicalDevice, shadowMapImage, nullptr);
-	// free the memory too?
 	vkDestroyImageView(logicalDevice, shadowMapImageView, nullptr);
+	vkFreeMemory(logicalDevice, shadowMapImageMemory, nullptr);
+	vkDestroyImage(logicalDevice, shadowMapImage, nullptr);
 	vkDestroyFramebuffer(logicalDevice, shadowMapFramebuffer, nullptr);
+	vkDestroySampler(logicalDevice, shadowMapSampler, nullptr);
 }
 
 
@@ -1608,7 +1610,6 @@ void Renderer::RecordCommandBuffers() {
         }
 
 		// First pass: generate shadow map by rendering the hair from the light's POV -----------------------
-
 		VkClearValue shadowMapClearValues[1];
 		shadowMapClearValues[0].depthStencil.depth = 1.0f;
 		shadowMapClearValues[0].depthStencil.stencil = 0;
@@ -1651,7 +1652,7 @@ void Renderer::RecordCommandBuffers() {
 		// Set depth bias, required to avoid shadow mapping artifacts
 		vkCmdSetDepthBias(commandBuffers[i], depthBiasConstant, 0.0f, depthBiasSlope);
 
-		vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, shadowMapPipelineLayout, 0, 1, &cameraDescriptorSet, 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, shadowMapPipelineLayout, 0, 1, &shadowCameraDescriptorSet, 0, nullptr);
 
 		vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, shadowMapPipeline);
 
@@ -1667,26 +1668,7 @@ void Renderer::RecordCommandBuffers() {
 
 		vkCmdEndRenderPass(commandBuffers[i]);
 
-
-		/*VkPipelineStageFlags shadow_map_wait_stages = 0;
-		VkSubmitInfo submit_info = { };
-		submit_info.pNext = NULL;
-		submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submit_info.waitSemaphoreCount = 0;
-		submit_info.pWaitSemaphores = NULL;
-		submit_info.signalSemaphoreCount = 1;
-		submit_info.pSignalSemaphores = &signal_sem;
-		submit_info.pWaitDstStageMask = 0;
-		submit_info.commandBufferCount = 1;
-		submit_info.pCommandBuffers = &commandBuffers[i];
-
-		vkQueueSubmit(queue, 1, &submit_info, NULL);*/
-
-
-
 		// apparently don't need any synchronization between render passes, done implicity via subpass dependencies
-
-
 
         // Second pass: normal graphics and hair ----------------------------------------
         VkRenderPassBeginInfo renderPassInfo = {};
@@ -1702,8 +1684,6 @@ void Renderer::RecordCommandBuffers() {
         renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
         renderPassInfo.pClearValues = clearValues.data();
 
-
-		// TODO: Do we need num strands and strand draw indirect?
 		std::vector<VkBufferMemoryBarrier> barriers(scene->GetHair().size());
         for (uint32_t j = 0; j < barriers.size(); ++j) {
             barriers[j].sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
@@ -1734,10 +1714,8 @@ void Renderer::RecordCommandBuffers() {
 
             vkCmdBindIndexBuffer(commandBuffers[i], scene->GetModels()[j]->getIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-            // Bind the descriptor set for each model
             vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelineLayout, 1, 1, &modelDescriptorSets[j], 0, nullptr);
 
-            // Draw
             std::vector<uint32_t> indices = scene->GetModels()[j]->getIndices();
             vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
         }
@@ -1746,15 +1724,12 @@ void Renderer::RecordCommandBuffers() {
         vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, hairPipeline);
 
         for (uint32_t j = 0; j < scene->GetHair().size(); ++j) {
-			// NOTE: This was GetCulledBuffer() because we were drawing non culled blades.
             VkBuffer vertexBuffers[] = { scene->GetHair()[j]->GetStrandsBuffer() }; 
             VkDeviceSize offsets[] = { 0 };
 			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
 
 			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, hairPipelineLayout, 1, 1, &hairDescriptorSets[j], 0, nullptr);
 
-            // Draw
-			// TODO: Do we need a num strands buffer and strandDrawIndirect like we had for blades?
 			vkCmdDrawIndirect(commandBuffers[i], scene->GetHair()[j]->GetNumStrandsBuffer(), 0, 1, sizeof(StrandDrawIndirect));
         }
 
@@ -1812,7 +1787,7 @@ void Renderer::Frame() {
 }
 
 
-//void Renderer::UpdateShere() {
+//void Renderer::UpdateSphere() {
 //	VkCommandBufferBeginInfo beginInfo = {};
 //	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 //	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
@@ -1836,10 +1811,12 @@ Renderer::~Renderer() {
     vkFreeCommandBuffers(logicalDevice, graphicsCommandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
     vkFreeCommandBuffers(logicalDevice, computeCommandPool, 1, &computeCommandBuffer);
     
+	vkDestroyPipeline(logicalDevice, shadowMapPipeline, nullptr);
     vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
     vkDestroyPipeline(logicalDevice, hairPipeline, nullptr);
     vkDestroyPipeline(logicalDevice, computePipeline, nullptr);
 
+    vkDestroyPipelineLayout(logicalDevice, shadowMapPipelineLayout, nullptr);
     vkDestroyPipelineLayout(logicalDevice, graphicsPipelineLayout, nullptr);
     vkDestroyPipelineLayout(logicalDevice, hairPipelineLayout, nullptr);
     vkDestroyPipelineLayout(logicalDevice, computePipelineLayout, nullptr);
@@ -1850,9 +1827,11 @@ Renderer::~Renderer() {
     vkDestroyDescriptorSetLayout(logicalDevice, collidersDescriptorSetLayout, nullptr);
 	vkDestroyDescriptorSetLayout(logicalDevice, gridDescriptorSetLayout, nullptr);
 	vkDestroyDescriptorSetLayout(logicalDevice, hairDescriptorSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(logicalDevice, computeDescriptorSetLayout, nullptr);
 
     vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
 
+	vkDestroyRenderPass(logicalDevice, shadowMapRenderPass, nullptr);
     vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
     DestroyFrameResources();
     DestroyShadowMapFrameResources();

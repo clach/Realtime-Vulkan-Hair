@@ -7,6 +7,8 @@
 #define DEG_TO_RAD 0.01745329251
 #define EPSILON 0.001
 
+layout(set = 1, binding = 1) uniform sampler2D depthSampler;
+
 layout(location = 0) in vec2 in_uv;
 layout(location = 1) in vec3 in_u;
 layout(location = 2) in vec3 in_v;
@@ -285,6 +287,9 @@ void main() {
 
 	//float test = getDirectionalAngleBetweenVectors(normalize(projectVectorOntoPlane(w_o, in_u)), in_v, in_u) / (2 * PI);
 	//outColor = vec4(test, test, test, 1.0);
+	
+	//outColor = vec4(S, 1.0);
 
-	outColor = vec4(S, 1.0);
+	vec3 test = vec3(texture(depthSampler, in_uv));
+	outColor = vec4(test, 1.0);
 }

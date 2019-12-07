@@ -11,19 +11,15 @@ const float SHADOW_MAP_HEIGHT = 600;
 class Renderer {
 public:
     Renderer() = delete;
-    Renderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* camera);
+    Renderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* camera, Camera* shadowCamera);
     ~Renderer();
 
 	Scene* scene;
 
-
     void CreateCommandPools();
-
-	//void CreateDepthImage();
 
     void CreateRenderPass();
 	void CreateShadowMapRenderPass();
-
 
     void CreateCameraDescriptorSetLayout();
     void CreateModelDescriptorSetLayout();
@@ -36,6 +32,7 @@ public:
     void CreateDescriptorPool();
 
     void CreateCameraDescriptorSet();
+    void CreateShadowCameraDescriptorSet();
     void CreateModelDescriptorSets();
     void CreateHairDescriptorSets();
     void CreateTimeDescriptorSet();
@@ -43,22 +40,21 @@ public:
 	void CreateGridDescriptorSets();
     void CreateComputeDescriptorSets();
 
-    void CreateGraphicsPipeline();
 	void CreateShadowMapPipeline();
+    void CreateGraphicsPipeline();
     void CreateHairPipeline();
     void CreateComputePipeline();
 
+	void CreateShadowMapFrameResources();
     void CreateFrameResources();
+	void DestroyShadowMapFrameResources();
     void DestroyFrameResources();
     void RecreateFrameResources();
-
-	void CreateShadowMapFrameResources();
-	void DestroyShadowMapFrameResources();
 
     void RecordCommandBuffers();
     void RecordComputeCommandBuffer();
 
-	//void UpdateShere();
+	//void UpdateSphere();
 
     void Frame();
 
@@ -67,6 +63,7 @@ private:
     VkDevice logicalDevice;
     SwapChain* swapChain;
     Camera* camera;
+    Camera* shadowCamera;
 
     VkCommandPool graphicsCommandPool;
     VkCommandPool computeCommandPool;
@@ -85,6 +82,7 @@ private:
     VkDescriptorPool descriptorPool;
 
     VkDescriptorSet cameraDescriptorSet;
+    VkDescriptorSet shadowCameraDescriptorSet;
     std::vector<VkDescriptorSet> modelDescriptorSets;
 	std::vector<VkDescriptorSet> hairDescriptorSets;
     VkDescriptorSet timeDescriptorSet;

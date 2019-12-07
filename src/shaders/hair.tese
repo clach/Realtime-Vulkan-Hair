@@ -300,7 +300,7 @@ void main() {
 	vec3 cameraPos = vec3(invView[3][0], invView[3][1], invView[3][2]);
 	out_viewDir = cameraPos - pos;
 
-	const float rootWidth = 0.075;
+	const float rootWidth = 0.05;
 	const float tipWidth = 0.001;
 	out_strandWidth = mix(rootWidth, tipWidth, v);
 
