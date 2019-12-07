@@ -10,6 +10,11 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
     mat4 proj;
 } camera;
 
+layout(set = 2, binding = 0) uniform ShadowCameraBufferObject {
+    mat4 view;
+    mat4 proj;
+} shadowCamera;
+
 layout(location = 0) in vec4[][NUM_CURVE_POINTS] in_curvePoints;
 
 layout(location = 0) out vec2 out_uv;
@@ -19,6 +24,7 @@ layout(location = 3) out vec3 out_w;
 layout(location = 4) out vec3 out_viewDir;
 layout(location = 5) out vec3 out_lightDir;
 layout(location = 6) out float out_strandWidth;
+//layout(location = 7) out vec4 out_fragPosLightSpace;
 
 // https://thebookofshaders.com/10/
 float random(vec2 st) {
@@ -328,19 +334,22 @@ void main() {
 	pos = singleStrandPos;
 
 
-
-
-	vec3 lightPos = vec3(-3.f, 0.f, 0.f);
+	vec3 lightPos = vec3(5.f, 0.f, -1.f);
 	out_lightDir = normalize(lightPos - pos);
 	mat4 invView = inverse(camera.view); // TODO: compute ahead of time?
 	vec3 cameraPos = vec3(invView[3][0], invView[3][1], invView[3][2]);
 	out_viewDir = cameraPos - pos;
 
-	const float rootWidth = 0.04;
-	const float tipWidth = 0.005;
-
+	const float rootWidth = 0.05;
+	const float tipWidth = 0.01;
 	out_strandWidth = mix(rootWidth, tipWidth, v);
 
-	gl_Position = camera.proj * camera.view * vec4(pos, 1.0);
+
+	//out_fragPosLightSpace = shadowCamera.proj * shadowCamera.view * vec4(pos, 1.0);
+
+
+
+	//gl_Position = camera.proj * camera.view * vec4(pos, 1.0);
+	gl_Position = vec4(pos, 1.0);
 }
 
