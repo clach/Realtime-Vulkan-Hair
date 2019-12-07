@@ -8,7 +8,8 @@
 
 #define SHADOWMAP_WIDTH 1080
 #define SHADOWMAP_HEIGHT 720
-#define DEPTH_FORMAT VK_FORMAT_D16_UNORM
+//#define DEPTH_FORMAT VK_FORMAT_D16_UNORM
+#define DEPTH_FORMAT VK_FORMAT_D32_SFLOAT
 #define SHADOWMAP_FILTER VK_FILTER_LINEAR
 
 static constexpr unsigned int WORKGROUP_SIZE = 32;
@@ -156,25 +157,22 @@ void Renderer::CreateShadowMapRenderPass() {
 	attachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	attachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	attachmentDescription.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-	attachmentDescription.flags = 0;
 
 	// Attachment references from subpasses
-	VkAttachmentReference depthAttachmentRef;
+	VkAttachmentReference depthAttachmentRef = {};
 	depthAttachmentRef.attachment = 0;
 	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-	// Subpass 0: shadow map rendering
 	VkSubpassDescription subpass = {};
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.flags = 0;
-	subpass.inputAttachmentCount = 0;
-	subpass.pInputAttachments = NULL;
+	//subpass.inputAttachmentCount = 0;
+	//subpass.pInputAttachments = NULL;
 	subpass.colorAttachmentCount = 0;
-	subpass.pColorAttachments = NULL;
-	subpass.pResolveAttachments = NULL;
+	//subpass.pColorAttachments = NULL;
+	//subpass.pResolveAttachments = NULL;
 	subpass.pDepthStencilAttachment = &depthAttachmentRef;
-	subpass.preserveAttachmentCount = 0;
-	subpass.pPreserveAttachments = NULL;
+	//subpass.preserveAttachmentCount = 0;
+	//subpass.pPreserveAttachments = NULL;
 
 	std::array<VkSubpassDependency, 2> dependencies;
 	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -194,7 +192,7 @@ void Renderer::CreateShadowMapRenderPass() {
 	dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
 	// Create render pass
-	VkRenderPassCreateInfo renderPassCreateInfo;
+	VkRenderPassCreateInfo renderPassCreateInfo = {};
 	renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 	renderPassCreateInfo.pNext = NULL;
 	renderPassCreateInfo.attachmentCount = 1;
@@ -1072,7 +1070,7 @@ void Renderer::CreateShadowMapPipeline() {
 	dynamicState.pNext = 0;
 	dynamicState.flags = 0;
 
-	std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, hairDescriptorSetLayout };
+	std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, hairDescriptorSetLayout, cameraDescriptorSetLayout };
 
 	// Pipeline layout: used to specify uniform values
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
@@ -1264,7 +1262,7 @@ void Renderer::CreateHairPipeline() {
     colorBlending.blendConstants[2] = 0.0f;
     colorBlending.blendConstants[3] = 0.0f;
 
-    std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, hairDescriptorSetLayout };
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, hairDescriptorSetLayout, cameraDescriptorSetLayout };
 
     // Pipeline layout: used to specify uniform values
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
@@ -1500,8 +1498,8 @@ void Renderer::CreateShadowMapFrameResources() {
 		throw std::runtime_error("Failed to create sampler");
 	}
 
-	// create framebufer
-	VkFramebufferCreateInfo framebufferInfo;
+	// create framebuffer
+	VkFramebufferCreateInfo framebufferInfo = {};
 	framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 	framebufferInfo.pNext = NULL;
 	framebufferInfo.renderPass = shadowMapRenderPass;
@@ -1510,7 +1508,6 @@ void Renderer::CreateShadowMapFrameResources() {
 	framebufferInfo.width = SHADOWMAP_WIDTH;
 	framebufferInfo.height = SHADOWMAP_HEIGHT;
 	framebufferInfo.layers = 1;
-	framebufferInfo.flags = 0;
 
 	if (vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &shadowMapFramebuffer) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create framebuffer");
@@ -1662,6 +1659,7 @@ void Renderer::RecordCommandBuffers() {
 			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
 
 			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, shadowMapPipelineLayout, 1, 1, &hairDescriptorSets[j], 0, nullptr);
+			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, shadowMapPipelineLayout, 2, 1, &shadowCameraDescriptorSet, 0, nullptr);
 
 			vkCmdDrawIndirect(commandBuffers[i], scene->GetHair()[j]->GetNumStrandsBuffer(), 1, 1, sizeof(StrandDrawIndirect));
 		}
@@ -1729,6 +1727,7 @@ void Renderer::RecordCommandBuffers() {
 			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
 
 			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, hairPipelineLayout, 1, 1, &hairDescriptorSets[j], 0, nullptr);
+			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, hairPipelineLayout, 2, 1, &shadowCameraDescriptorSet, 0, nullptr);
 
 			vkCmdDrawIndirect(commandBuffers[i], scene->GetHair()[j]->GetNumStrandsBuffer(), 0, 1, sizeof(StrandDrawIndirect));
         }

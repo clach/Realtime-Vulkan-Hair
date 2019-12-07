@@ -7,6 +7,7 @@ layout(set = 1, binding = 0) uniform ModelBufferObject {
 };
 
 layout(location = 0) in vec4 in_curvePoints[NUM_CURVE_POINTS];
+
 layout(location = 0) out vec4 out_curvePoints[NUM_CURVE_POINTS];
 
 void main() {

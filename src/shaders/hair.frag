@@ -15,6 +15,7 @@ layout(location = 2) in vec3 in_v;
 layout(location = 3) in vec3 in_w;
 layout(location = 4) in vec3 in_viewDir;
 layout(location = 5) in vec3 in_lightDir;
+layout(location = 6) in vec4 in_fragPosLightSpace;
 
 layout(location = 0) out vec4 outColor;
 
@@ -145,6 +146,16 @@ float N(float p, float phi) {
 	//	N += A(p, h(p, r, phi)) * abs(dphi_dh);
 	//}
 	return N;
+}
+
+float shadowCalculation(vec4 fragPosLightSpace) {
+	vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+	projCoords.xy = projCoords.xy * 0.5 + 0.5;
+	float closestDepth = texture(depthSampler, projCoords.xy).r;
+	float currentDepth = projCoords.z;
+	float shadow = currentDepth > closestDepth ? 1.0 : 0.0;
+	return shadow;
+	//return currentDepth;
 }
 
 void main() {
@@ -290,6 +301,10 @@ void main() {
 	
 	//outColor = vec4(S, 1.0);
 
-	vec3 test = vec3(texture(depthSampler, in_uv));
-	outColor = vec4(test, 1.0);
+	vec3 test = (vec3(texture(depthSampler, in_uv)) - 0.75f) * 4.f;
+
+	float shadow = shadowCalculation(in_fragPosLightSpace);
+	vec3 colorTest = vec3(shadow);
+
+	outColor = vec4(S * (1.f - shadow), 1.0);
 }
