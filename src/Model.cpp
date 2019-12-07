@@ -13,8 +13,8 @@ Model::Model(Device* device, VkCommandPool commandPool, const std::vector<Vertex
         BufferUtils::CreateBufferFromData(device, commandPool, this->indices.data(), indices.size() * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, indexBuffer, indexBufferMemory);
     }
 
-	//modelBufferObject.modelMatrix = transform;
-	//modelBufferObject.invTransModelMatrix = glm::transpose(glm::inverse(transform));
+	modelBufferObject.modelMatrix = transform;
+	modelBufferObject.invTransModelMatrix = glm::transpose(glm::inverse(transform));
 	//BufferUtils::CreateBuffer(device, sizeof(ModelBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, modelBuffer, modelBufferMemory);
 	//BufferUtils::CreateBufferFromData(device, commandPool, &modelBufferObject, sizeof(ModelBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, modelBuffer, modelBufferMemory);
 
@@ -115,7 +115,7 @@ VkBuffer Model::getIndexBuffer() const {
     return indexBuffer;
 }
 
-const ModelBufferObject& Model::getModelBufferObject() const {
+ModelBufferObject& Model::getModelBufferObject() {
     return modelBufferObject;
 }
 

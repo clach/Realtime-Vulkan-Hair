@@ -19,7 +19,8 @@ public:
     void CreateRenderPass();
 
     void CreateCameraDescriptorSetLayout();
-    void CreateModelDescriptorSetLayout();
+    void CreateModelMatrixDescriptorSetLayout();
+    void CreateTextureDescriptorSetLayout();
 	void CreateHairDescriptorSetLayout();
     void CreateTimeDescriptorSetLayout();
     void CreateCollidersDescriptorSetLayout();
@@ -29,7 +30,8 @@ public:
     void CreateDescriptorPool();
 
     void CreateCameraDescriptorSet();
-    void CreateModelDescriptorSets();
+    void CreateModelDescriptorSet();
+    void CreateTextureDescriptorSets();
     void CreateHairDescriptorSets();
     void CreateTimeDescriptorSet();
     void CreateCollidersDescriptorSets();
@@ -63,7 +65,8 @@ private:
     VkRenderPass renderPass;
 
     VkDescriptorSetLayout cameraDescriptorSetLayout;
-    VkDescriptorSetLayout modelDescriptorSetLayout;
+    VkDescriptorSetLayout modelMatrixDescriptorSetLayout;
+    VkDescriptorSetLayout textureDescriptorSetLayout;
     VkDescriptorSetLayout hairDescriptorSetLayout;
 	VkDescriptorSetLayout timeDescriptorSetLayout;
 	VkDescriptorSetLayout collidersDescriptorSetLayout;
@@ -73,8 +76,10 @@ private:
     VkDescriptorPool descriptorPool;
 
     VkDescriptorSet cameraDescriptorSet;
-    std::vector<VkDescriptorSet> modelDescriptorSets;
+    std::vector<VkDescriptorSet> textureDescriptorSets;
 	std::vector<VkDescriptorSet> hairDescriptorSets;
+
+	VkDescriptorSet modelDescriptorSet;
     VkDescriptorSet timeDescriptorSet;
 	VkDescriptorSet collidersDescriptorSets;
 	VkDescriptorSet gridDescriptorSets;

@@ -62,7 +62,6 @@ private:
 	std::vector<ModelBufferObject> modelMatrices;
 	VkBuffer modelBuffer;
 	VkDeviceMemory modelBufferMemory;
-	size_t dynamicAlignment;
 
 
     std::vector<Hair*> hair;
@@ -82,6 +81,8 @@ public:
     Scene() = delete;
     Scene(Device* device, VkCommandPool commandPool, std::vector<Collider> colliders, std::vector<Model*> models);
     ~Scene();
+
+	size_t dynamicAlignment;
 
     const std::vector<Model*>& GetModels() const;
     const std::vector<Hair*>& GetHair() const;

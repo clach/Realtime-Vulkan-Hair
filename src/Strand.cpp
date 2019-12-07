@@ -123,4 +123,7 @@ Hair::~Hair() {
 
 	vkDestroyBuffer(device->GetVkDevice(), numStrandsBuffer, nullptr);
 	vkFreeMemory(device->GetVkDevice(), numStrandsBufferMemory, nullptr);
+
+	vkDestroyBuffer(device->GetVkDevice(), modelBuffer, nullptr);
+	vkFreeMemory(device->GetVkDevice(), modelBufferMemory, nullptr);
 }

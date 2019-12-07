@@ -6,7 +6,7 @@ layout(set = 0, binding = 0) uniform CameraBufferObject {
 	mat4 proj;
 } camera;
 
-layout(set = 1, binding = 0) uniform ModelBufferObject {
+layout(set = 2, binding = 0) uniform ModelBufferObject {
     mat4 model;
 	mat4 invTransModel;
 };
