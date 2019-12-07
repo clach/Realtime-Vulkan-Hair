@@ -21,6 +21,22 @@ We created a real-time hair simulation using Vulkan. Our pipeline simulates phys
   - Follicle placement from sampling mesh
   - Physics simulation in compute shader (no collisions yet)
   - Bezier interpolation between strand curve points in tessellation shader
+- [Milestone 2](presentations/Milestone2.pdf)
+  - Hair-object collision
+  - Single strand interpolation
+  - Mesh loading and rendering
+  - Begin hair-hair collision
+- [Milestone 3](presentations/Milestone3.pdf)
+  - Extended isolines into triangles with geometry shader
+  - Begin single scattering rendering
+  - Interactive collision sphere
+- Final
+  - Hair-hair collision
+  - Complete single scattering
+  - Shadow mapping
+  - Multi scattering
+  - Multiple strand interpolation
+  - Polish
   
 # Implementation
 ## Pipeline
