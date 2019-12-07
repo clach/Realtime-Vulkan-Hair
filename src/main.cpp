@@ -13,6 +13,7 @@ Device* device;
 SwapChain* swapChain;
 Renderer* renderer;
 Camera* camera;
+Camera* shadowCamera;
 
 bool WDown = false;
 bool ADown = false;
@@ -155,7 +156,9 @@ void moveSphere(VkCommandPool commandPool) {
 
 int main() {
     static constexpr char* applicationName = "Realtime Vulkan Hair";
-    InitializeWindow(640, 480, applicationName);
+	const float windowWidth = 1080.f;
+	const float windowHeight = 720.f;
+	InitializeWindow((int)windowWidth, (int)windowHeight, applicationName);
 
     unsigned int glfwExtensionCount = 0;
     const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
@@ -179,7 +182,8 @@ int main() {
 
     swapChain = device->CreateSwapChain(surface, 5);
 
-    camera = new Camera(device, 640.f / 480.f);
+    camera = new Camera(device, windowWidth / windowHeight);
+	shadowCamera = new Camera(device, windowWidth / windowHeight, glm::vec3(2.f, 10.f, -5.f));
 
     VkCommandPoolCreateInfo transferPoolInfo = {};
     transferPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -211,11 +215,11 @@ int main() {
 	std::vector<uint32_t> indices;
 
 	ObjLoader::LoadObj("models/collisionTest.obj", vertices, indices);
-	Model* collisionSphere = new Model(device, transferCommandPool, vertices, indices, glm::scale(glm::vec3(0.98)));
+	Model* collisionSphere = new Model(device, transferCommandPool, vertices, indices, glm::scale(glm::vec3(0.98f)));
 	collisionSphere->SetTexture(mannequinDiffuseImage);
 
 	ObjLoader::LoadObj("models/mannequin.obj", vertices, indices);
-	Model* mannequin = new Model(device, transferCommandPool, vertices, indices, glm::scale(glm::vec3(0.98)));
+	Model* mannequin = new Model(device, transferCommandPool, vertices, indices, glm::scale(glm::vec3(0.98f)));
 	mannequin->SetTexture(mannequinDiffuseImage);
 
 	Hair* hair = new Hair(device, transferCommandPool, "models/mannequin_segment.obj");
@@ -249,7 +253,7 @@ int main() {
 
 	vkDestroyCommandPool(device->GetVkDevice(), transferCommandPool, nullptr);
 
-    renderer = new Renderer(device, swapChain, scene, camera);
+    renderer = new Renderer(device, swapChain, scene, camera, shadowCamera);
 
     glfwSetWindowSizeCallback(GetGLFWWindow(), resizeCallback);
     glfwSetMouseButtonCallback(GetGLFWWindow(), mouseDownCallback);
@@ -278,6 +282,7 @@ int main() {
 	delete mannequin;
     delete hair;
     delete camera;
+    delete shadowCamera;
     delete renderer;
     delete swapChain;
     delete device;

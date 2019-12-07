@@ -338,6 +338,7 @@ void main() {
 
 	const float rootWidth = 0.04;
 	const float tipWidth = 0.005;
+
 	out_strandWidth = mix(rootWidth, tipWidth, v);
 
 	gl_Position = camera.proj * camera.view * vec4(pos, 1.0);

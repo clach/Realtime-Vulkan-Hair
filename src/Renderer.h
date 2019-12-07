@@ -8,19 +8,15 @@
 class Renderer {
 public:
     Renderer() = delete;
-    Renderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* camera);
+    Renderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* camera, Camera* shadowCamera);
     ~Renderer();
 
 	Scene* scene;
 
-
     void CreateCommandPools();
-
-	//void CreateDepthImage();
 
     void CreateRenderPass();
 	void CreateShadowMapRenderPass();
-
 
     void CreateCameraDescriptorSetLayout();
     void CreateModelMatrixDescriptorSetLayout();
@@ -36,28 +32,28 @@ public:
     void CreateCameraDescriptorSet();
     void CreateModelDescriptorSet();
     void CreateTextureDescriptorSets();
+    void CreateShadowCameraDescriptorSet();
     void CreateHairDescriptorSets();
     void CreateTimeDescriptorSet();
     void CreateCollidersDescriptorSets();
 	void CreateGridDescriptorSets();
     void CreateComputeDescriptorSets();
 
-    void CreateGraphicsPipeline();
 	void CreateShadowMapPipeline();
+    void CreateGraphicsPipeline();
     void CreateHairPipeline();
     void CreateComputePipeline();
 
+	void CreateShadowMapFrameResources();
     void CreateFrameResources();
+	void DestroyShadowMapFrameResources();
     void DestroyFrameResources();
     void RecreateFrameResources();
-
-	void CreateShadowMapFrameResources();
-	void DestroyShadowMapFrameResources();
 
     void RecordCommandBuffers();
     void RecordComputeCommandBuffer();
 
-	//void UpdateShere();
+	//void UpdateSphere();
 
     void Frame();
 
@@ -66,6 +62,7 @@ private:
     VkDevice logicalDevice;
     SwapChain* swapChain;
     Camera* camera;
+    Camera* shadowCamera;
 
     VkCommandPool graphicsCommandPool;
     VkCommandPool computeCommandPool;
@@ -86,6 +83,7 @@ private:
 
     VkDescriptorSet cameraDescriptorSet;
     std::vector<VkDescriptorSet> textureDescriptorSets;
+    VkDescriptorSet shadowCameraDescriptorSet;
 	std::vector<VkDescriptorSet> hairDescriptorSets;
 
 	VkDescriptorSet modelDescriptorSet;

@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include <glm/glm.hpp>
@@ -24,6 +23,7 @@ private:
 
 public:
     Camera(Device* device, float aspectRatio);
+    Camera(Device* device, float aspectRatio, glm::vec3 eye);
     ~Camera();
 
     VkBuffer GetBuffer() const;
