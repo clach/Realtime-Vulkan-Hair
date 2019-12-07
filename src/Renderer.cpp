@@ -323,13 +323,16 @@ void Renderer::CreateDescriptorPool() {
 
 		// Grid (compute)
 		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER , 1 },
+
+		// Model Matrices dynamic
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1 },
     };
 
     VkDescriptorPoolCreateInfo poolInfo = {};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = 8; // TODO: idk what determines this number
+    poolInfo.maxSets = 9; // TODO: idk what determines this number
 
     if (vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create descriptor pool");

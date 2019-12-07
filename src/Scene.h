@@ -59,6 +59,12 @@ private:
 	void* mappedData3;
 
     std::vector<Model*> models;
+	std::vector<ModelBufferObject> modelMatrices;
+	VkBuffer modelBuffer;
+	VkDeviceMemory modelBufferMemory;
+	size_t dynamicAlignment;
+
+
     std::vector<Hair*> hair;
 
 	std::vector<Collider> colliders;
@@ -74,7 +80,7 @@ private:
 
 public:
     Scene() = delete;
-    Scene(Device* device, VkCommandPool commandPool, std::vector<Collider> colliders);
+    Scene(Device* device, VkCommandPool commandPool, std::vector<Collider> colliders, std::vector<Model*> models);
     ~Scene();
 
     const std::vector<Model*>& GetModels() const;
@@ -82,6 +88,7 @@ public:
     const std::vector<Collider>& GetColliders() const;
 	//const std::vector<glm::vec3>& GetGrid() const;
 	const std::vector<GridCell>& GetGrid() const;
+	const std::vector<ModelBufferObject>& GetModelMatrices() const;
     
     void AddModel(Model* model);
     void AddHair(Hair* hair);
@@ -93,6 +100,7 @@ public:
     VkBuffer GetTimeBuffer() const;
     VkBuffer GetCollidersBuffer() const;
 	VkBuffer GetGridBuffer() const;
+	VkBuffer GetModelBuffer() const;
 
 	//void CreateCollidersBuffer(VkCommandPool commandPool);
 

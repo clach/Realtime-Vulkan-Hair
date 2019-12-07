@@ -26,8 +26,8 @@ protected:
     VkBuffer indexBuffer;
     VkDeviceMemory indexBufferMemory;
 
-    VkBuffer modelBuffer;
-    VkDeviceMemory modelBufferMemory;
+   /* VkBuffer modelBuffer;
+    VkDeviceMemory modelBufferMemory;*/
 
 	void* mappedData;
 
@@ -56,7 +56,7 @@ public:
 
 	void translateModel(glm::vec3 translation);
 
-    VkBuffer GetModelBuffer() const;
+    //VkBuffer GetModelBuffer() const;
     VkImageView GetTextureView() const;
     VkSampler GetTextureSampler() const;
 };
