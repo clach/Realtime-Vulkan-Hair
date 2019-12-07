@@ -150,7 +150,7 @@ void moveSphere(VkCommandPool commandPool) {
 	}
 
 	renderer->scene->translateSphere(translation);
-	renderer->scene->GetModels().at(1)->translateModel(translation);
+	//renderer->scene->GetModels().at(1)->translateModel(translation);
 }
 
 int main() {
@@ -219,6 +219,7 @@ int main() {
 	mannequin->SetTexture(mannequinDiffuseImage);
 
 	Hair* hair = new Hair(device, transferCommandPool, "models/mannequin_segment.obj");
+	//hair->SetTexture(mannequinDiffuseImage);
 
 	// trans, rot, scale
 	Collider testCollider = Collider(glm::vec3(2.0, 0.0, 1.0), glm::vec3(0.0), glm::vec3(1.0));
@@ -231,9 +232,11 @@ int main() {
 
 	std::vector<Collider> colliders = { testCollider, headCollider, neckCollider, bustCollider, shoulderRCollider, shoulderLCollider };
 
-    Scene* scene = new Scene(device, transferCommandPool, colliders);
-    scene->AddModel(collisionSphere);
-    scene->AddModel(mannequin);
+	std::vector<Model*> models = {collisionSphere, mannequin};
+
+    Scene* scene = new Scene(device, transferCommandPool, colliders, models);
+   /* scene->AddModel(collisionSphere);
+    scene->AddModel(mannequin);*/
     scene->AddHair(hair);
 	/*scene->AddCollider(testCollider);
     scene->AddCollider(headCollider);

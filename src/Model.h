@@ -10,6 +10,11 @@
 
 
 struct ModelBufferObject {
+	ModelBufferObject() {
+		modelMatrix = glm::mat4(glm::vec4(1,0,0,0), glm::vec4(0,1,0,0), glm::vec4(0,0,1,0), glm::vec4(0));
+		invTransModelMatrix = glm::mat4(glm::vec4(1, 0, 0, 0), glm::vec4(0, 1, 0, 0), glm::vec4(0, 0, 1, 0), glm::vec4(0, 0, 0, 0));
+	}
+
     glm::mat4 modelMatrix;
 	glm::mat4 invTransModelMatrix;
 };
@@ -26,8 +31,8 @@ protected:
     VkBuffer indexBuffer;
     VkDeviceMemory indexBufferMemory;
 
-    VkBuffer modelBuffer;
-    VkDeviceMemory modelBufferMemory;
+   /* VkBuffer modelBuffer;
+    VkDeviceMemory modelBufferMemory;*/
 
 	void* mappedData;
 
@@ -52,11 +57,11 @@ public:
 
     VkBuffer getIndexBuffer() const;
 
-    const ModelBufferObject& getModelBufferObject() const;
+    ModelBufferObject& getModelBufferObject();
 
 	void translateModel(glm::vec3 translation);
 
-    VkBuffer GetModelBuffer() const;
+    //VkBuffer GetModelBuffer() const;
     VkImageView GetTextureView() const;
     VkSampler GetTextureSampler() const;
 };

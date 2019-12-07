@@ -70,9 +70,11 @@ class Hair : public Model {
 private:
     VkBuffer strandsBuffer;
 	VkBuffer numStrandsBuffer;
+	VkBuffer modelBuffer;
 
     VkDeviceMemory strandsBufferMemory;
     VkDeviceMemory numStrandsBufferMemory;
+	VkDeviceMemory modelBufferMemory;
 
 	int numStrands;
 
@@ -80,6 +82,7 @@ public:
     Hair(Device* device, VkCommandPool commandPool, std::string objFilename);
     VkBuffer GetStrandsBuffer() const;
     VkBuffer GetNumStrandsBuffer() const;
+	VkBuffer GetModelBuffer() const;
 	int GetNumStrands() const;
     ~Hair();
 };

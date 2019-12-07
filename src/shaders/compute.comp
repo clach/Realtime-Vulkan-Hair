@@ -158,16 +158,20 @@ void main() {
 	
 		float tempDamp = 1.0;
 
+		int numColliders = 0;
+		vec3 addedForce = vec3(0.0);
+
 		for (int j = 0; j < NUM_COLLIDERS; j++) {
 			Collider c = colliders[j];
 			if (j == 0) {
 				float radius = 1.0;
 				if (distance(currentPos, c.transform[3].xyz) < radius) {
-					float k = 800.0; // spring constant, as large as possible without exploding
+					float k = 1800.0; // spring constant, as large as possible without exploding
 					float d = radius - distance(currentPos, c.transform[3].xyz);
 					vec3 normal = normalize(currentPos - c.transform[3].xyz); // normal of collision surface at point of collision
 					//normal = normalize(currentPos.xyz - vec3(c.transform * vec4(0.0, 0.0, 0.0, 1.0)));
-					force += vec3(k * d * normal); // penalty spring force
+					addedForce += vec3(k * d * normal); // penalty spring force
+					numColliders = numColliders + 1;
 
 //					extraDamp = max(1.0 - 0.2 * d, 0.999); // add extra damping proprotional to depth
 //					tempDamp = 0.999;
@@ -176,16 +180,21 @@ void main() {
 			else {
 				// Add penalty force to push hair outside of collision object
 				if (EllipsoidCollision(c, currentPos.xyz)) {
-					float k = 800.0; // spring constant, as large as possible without exploding
+					float k = 1800.0; // spring constant, as large as possible without exploding
 					float d = distance(GetPointOnEllipsoid(c, currentPos.xyz), currentPos.xyz);
 					vec3 normal = normalize(GetEllipsoidNormal(c, currentPos.xyz)); // normal of collision surface at point of collision
 					//normal = normalize(currentPos.xyz - vec3(c.transform * vec4(0.0, 0.0, 0.0, 1.0)));
-					force += vec3(k * d * normal); // penalty spring force
+					addedForce += vec3(k * d * normal); // penalty spring force
+					numColliders = numColliders + 1;
 
 //					extraDamp = max(1.0 - 0.2 * d, 0.999); // add extra damping proprotional to depth
 //					tempDamp = 0.9997;
 				} 
 			}
+		}
+
+		if (numColliders > 0) {
+			force += addedForce /  float(numColliders);
 		}
 
 		// Get predicted position based on position, velocity, and force

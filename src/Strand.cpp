@@ -92,8 +92,13 @@ Hair::Hair(Device* device, VkCommandPool commandPool, std::string objFilename) :
 	indirectDraw.firstVertex = 0;
 	indirectDraw.firstInstance = 0;
 
+	ModelBufferObject modelMatrix;
+	modelMatrix.modelMatrix = glm::mat4();
+	modelMatrix.invTransModelMatrix = glm::mat4();
+
 	BufferUtils::CreateBufferFromData(device, commandPool, strands.data(), numStrands * sizeof(Strand), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, strandsBuffer, strandsBufferMemory);
 	BufferUtils::CreateBufferFromData(device, commandPool, &indirectDraw, sizeof(StrandDrawIndirect), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, numStrandsBuffer, numStrandsBufferMemory);
+	BufferUtils::CreateBufferFromData(device, commandPool, &modelMatrix, sizeof(ModelBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, modelBuffer, modelBufferMemory);
 }
 
 VkBuffer Hair::GetStrandsBuffer() const {
@@ -102,6 +107,10 @@ VkBuffer Hair::GetStrandsBuffer() const {
 
 VkBuffer Hair::GetNumStrandsBuffer() const {
 	return numStrandsBuffer;
+}
+
+VkBuffer Hair::GetModelBuffer() const {
+	return modelBuffer;
 }
 
 int Hair::GetNumStrands() const {
@@ -114,4 +123,7 @@ Hair::~Hair() {
 
 	vkDestroyBuffer(device->GetVkDevice(), numStrandsBuffer, nullptr);
 	vkFreeMemory(device->GetVkDevice(), numStrandsBufferMemory, nullptr);
+
+	vkDestroyBuffer(device->GetVkDevice(), modelBuffer, nullptr);
+	vkFreeMemory(device->GetVkDevice(), modelBufferMemory, nullptr);
 }

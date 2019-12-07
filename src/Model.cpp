@@ -15,12 +15,12 @@ Model::Model(Device* device, VkCommandPool commandPool, const std::vector<Vertex
 
 	modelBufferObject.modelMatrix = transform;
 	modelBufferObject.invTransModelMatrix = glm::transpose(glm::inverse(transform));
-	BufferUtils::CreateBuffer(device, sizeof(ModelBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, modelBuffer, modelBufferMemory);
+	//BufferUtils::CreateBuffer(device, sizeof(ModelBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, modelBuffer, modelBufferMemory);
 	//BufferUtils::CreateBufferFromData(device, commandPool, &modelBufferObject, sizeof(ModelBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, modelBuffer, modelBufferMemory);
 
 
-	vkMapMemory(device->GetVkDevice(), modelBufferMemory, 0, sizeof(ModelBufferObject), 0, &mappedData);
-	memcpy(mappedData, &modelBufferObject, sizeof(ModelBufferObject));
+	//vkMapMemory(device->GetVkDevice(), modelBufferMemory, 0, sizeof(ModelBufferObject), 0, &mappedData);
+	//memcpy(mappedData, &modelBufferObject, sizeof(ModelBufferObject));
 }
 
 void Model::translateModel(glm::vec3 translation) {
@@ -31,7 +31,7 @@ void Model::translateModel(glm::vec3 translation) {
 	glm::mat4 inverse = glm::transpose(glm::inverse(newTransform));
 	modelBufferObject.invTransModelMatrix = inverse;
 	
-	memcpy(mappedData, &modelBufferObject, sizeof(ModelBufferObject));
+	//memcpy(mappedData, &modelBufferObject, sizeof(ModelBufferObject));
 }
 
 Model::~Model() {
@@ -45,8 +45,8 @@ Model::~Model() {
         vkFreeMemory(device->GetVkDevice(), vertexBufferMemory, nullptr);
     }
 
-    vkDestroyBuffer(device->GetVkDevice(), modelBuffer, nullptr);
-    vkFreeMemory(device->GetVkDevice(), modelBufferMemory, nullptr);
+    /*vkDestroyBuffer(device->GetVkDevice(), modelBuffer, nullptr);
+    vkFreeMemory(device->GetVkDevice(), modelBufferMemory, nullptr);*/
 
     if (textureView != VK_NULL_HANDLE) {
         vkDestroyImageView(device->GetVkDevice(), textureView, nullptr);
@@ -115,13 +115,13 @@ VkBuffer Model::getIndexBuffer() const {
     return indexBuffer;
 }
 
-const ModelBufferObject& Model::getModelBufferObject() const {
+ModelBufferObject& Model::getModelBufferObject() {
     return modelBufferObject;
 }
 
-VkBuffer Model::GetModelBuffer() const {
-    return modelBuffer;
-}
+//VkBuffer Model::GetModelBuffer() const {
+//    return modelBuffer;
+//}
 
 VkImageView Model::GetTextureView() const {
     return textureView;
