@@ -21,7 +21,6 @@ layout(location = 3) in vec3 in_w[];
 layout(location = 4) in vec3 in_viewDir[];
 layout(location = 5) in vec3 in_lightDir[];
 layout(location = 6) in float in_strandWidth[];
-//layout(location = 7) in vec3 in_fragPos[];
 //layout(location = 7) in vec4 in_fragPosLightSpace[];
 
 layout(location = 0) out vec2 out_uv;
