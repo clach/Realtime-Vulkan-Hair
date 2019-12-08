@@ -151,11 +151,34 @@ float N(float p, float phi) {
 
 float shadowCalculation(vec4 fragPosLightSpace) {
 	vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+
+	if (abs(projCoords.x) > 1.f || abs(projCoords.y) > 1.f || abs(projCoords.z) > 1.f ) {
+		return 0.f;
+	}
 	projCoords.xy = projCoords.xy * 0.5 + 0.5;
-	float opacity = texture(depthSampler, projCoords.xy).r;
-	float closestDepth = texture(depthSampler, projCoords.xy).r;
 	float currentDepth = projCoords.z;
-	return currentDepth > closestDepth ? 1.f : 0.f;
+
+	int pcfSize = 4;
+	int pcfSizeMinus1 = int(pcfSize - 1);
+	float kernelSize = 2.f * pcfSizeMinus1 + 1.f;
+	float numSamples = kernelSize * kernelSize;
+	
+	float lightedCount = 0.f;
+	vec2 shadowMapSize = vec2(1080, 720);
+	vec2 shadowMapTexelSize = 1.f / shadowMapSize;
+	for (int x = -pcfSizeMinus1; x <= pcfSizeMinus1; x++) {
+		for (int y = -pcfSizeMinus1; y <= pcfSizeMinus1; y++) {
+			vec2 pcfCoords = projCoords.xy + vec2(x, y) * shadowMapTexelSize;
+			float closestDepth = texture(depthSampler, pcfCoords.xy).r;
+			if (currentDepth > closestDepth) {
+				lightedCount += 1.f;
+			}
+		}
+	}
+	return lightedCount / numSamples;
+	//float closestDepth = texture(depthSampler, projCoords.xy).r;
+	//float currentDepth = projCoords.z;
+	//return currentDepth > closestDepth ? 0.f : 1.f;
 }
 
 void main() {
@@ -334,5 +357,5 @@ void main() {
 	vec3 colorTest = vec3(shadow);
 
 	//outColor = vec4(S * (1.f - opacity), 1.0);
-	outColor = vec4((S + S_multi) * vec3(1.f - shadow), 1.0);
+	outColor = vec4((S + S_multi) * (1.f - shadow), 1.0);
 }

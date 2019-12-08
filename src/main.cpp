@@ -151,6 +151,7 @@ void moveSphere(VkCommandPool commandPool) {
 	}
 
 	renderer->scene->translateSphere(translation);
+	shadowCamera->TranslateCamera(translation);
 	//renderer->scene->GetModels().at(1)->translateModel(translation);
 }
 
@@ -183,7 +184,7 @@ int main() {
     swapChain = device->CreateSwapChain(surface, 5);
 
     camera = new Camera(device, windowWidth / windowHeight);
-	shadowCamera = new Camera(device, windowWidth / windowHeight, glm::vec3(5.f, 0.f, -1.f), 4.f, 6.f);
+	shadowCamera = new Camera(device, windowWidth / windowHeight, glm::vec3(2.f, 0.f, 1.f), 1.f, 10.f);
 
     VkCommandPoolCreateInfo transferPoolInfo = {};
     transferPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;

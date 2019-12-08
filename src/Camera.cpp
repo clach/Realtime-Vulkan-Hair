@@ -8,11 +8,11 @@
 #include "Camera.h"
 #include "BufferUtils.h"
 
-Camera::Camera(Device* device, float aspectRatio) : device(device) {
+Camera::Camera(Device* device, float aspectRatio) : device(device), eye(glm::vec3(0.0f, 1.f, 10.f)) {
     r = 10.0f;
     theta = 0.0f;
     phi = 0.0f;
-    cameraBufferObject.viewMatrix = glm::lookAt(glm::vec3(0.0f, 1.0f, 10.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    cameraBufferObject.viewMatrix = glm::lookAt(eye, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     cameraBufferObject.projectionMatrix = glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 50.0f);
     cameraBufferObject.projectionMatrix[1][1] *= -1; // y-coordinate is flipped
 
@@ -21,11 +21,14 @@ Camera::Camera(Device* device, float aspectRatio) : device(device) {
     memcpy(mappedData, &cameraBufferObject, sizeof(CameraBufferObject));
 }
 
-Camera::Camera(Device* device, float aspectRatio, glm::vec3 eye, float nearPlane, float farPlane) : device(device) {
+Camera::Camera(Device* device, float aspectRatio, glm::vec3 eye, float nearPlane, float farPlane) : device(device), eye(eye) {
 	r = 10.0f;
 	theta = 0.0f;
 	phi = 0.0f;
-	cameraBufferObject.viewMatrix = glm::lookAt(eye, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+	glm::vec3 normal = normalize(this->eye - glm::vec3(0.f, 1.f, 0.f));
+
+	cameraBufferObject.viewMatrix = glm::lookAt(6.5f * normal, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	cameraBufferObject.projectionMatrix = glm::perspective(glm::radians(60.0f), aspectRatio, nearPlane, farPlane);
 	cameraBufferObject.projectionMatrix[1][1] *= -1; // y-coordinate is flipped
 
@@ -52,6 +55,15 @@ void Camera::UpdateOrbit(float deltaX, float deltaY, float deltaZ) {
     cameraBufferObject.viewMatrix = glm::inverse(finalTransform);
 
     memcpy(mappedData, &cameraBufferObject, sizeof(CameraBufferObject));
+}
+
+void Camera::TranslateCamera(glm::vec3 translation) {
+	this->eye += translation;
+
+	glm::vec3 normal = normalize(this->eye - glm::vec3(0.f, 1.f, 0.0));
+
+	cameraBufferObject.viewMatrix = glm::lookAt(6.5f * normal, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	memcpy(mappedData, &cameraBufferObject, sizeof(CameraBufferObject));
 }
 
 Camera::~Camera() {

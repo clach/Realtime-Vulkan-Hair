@@ -20,6 +20,7 @@ private:
     void* mappedData;
 
     float r, theta, phi;
+	glm::vec3 eye;
 
 public:
     Camera(Device* device, float aspectRatio);
@@ -29,4 +30,5 @@ public:
     VkBuffer GetBuffer() const;
     
     void UpdateOrbit(float deltaX, float deltaY, float deltaZ);
+	void TranslateCamera(glm::vec3 translation);
 };

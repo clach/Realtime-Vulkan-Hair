@@ -333,8 +333,10 @@ void main() {
 
 	pos = singleStrandPos;
 
+	mat4 invLightView = inverse(shadowCamera.view); // TODO: compute ahead of time?
+	vec3 lightPos = vec3(invLightView[3][0], invLightView[3][1], invLightView[3][2]);
 
-	vec3 lightPos = vec3(5.f, 0.f, -1.f);
+	//vec3 lightPos = vec3(3.f, -1.f, 1.f);
 	out_lightDir = normalize(lightPos - pos);
 	mat4 invView = inverse(camera.view); // TODO: compute ahead of time?
 	vec3 cameraPos = vec3(invView[3][0], invView[3][1], invView[3][2]);
