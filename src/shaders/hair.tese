@@ -241,7 +241,11 @@ void main() {
 	float rand2 = abs(random(vec2(u, u * u)));
 	float width = (random(vec2(3.534 * u, u * 37.19817)) + 0.1) * 0.2 * exp(-pow(v - 0.5, 2.0) / (2.0 * pow(0.2, 2.0)));
 	const float clumpRadius = 0.5f;
-	width = clumpRadius * mix(mix(0.f, 0.2, v), mix(0.3, 0.1, v), v) * (rand2 + 0.5);
+	width = clumpRadius * mix(mix(0.05f, 0.3, v), mix(0.3, 0.1, v), v) * (rand2 + 0.5);
+	//width = clumpRadius * mix(0.3, 0.1, v) * (rand2 + 0.5);
+	//if (v == 0) {
+	//	width = 0.f;
+	//}
 	float uRad = 2.f * PI * u; // remap u to (0, 2pi)
 	vec3 dir = normalize(vec3(cos(uRad), 0.f, sin(uRad)));
 
@@ -273,7 +277,7 @@ void main() {
 		sd = 1.0;
 	}
 
-	dir *= sd;
+	//dir *= sd;
 
 	// caculate orthonormal basis for shading
 	//vec3 tangent = normalize(stupidFunc(u, v));

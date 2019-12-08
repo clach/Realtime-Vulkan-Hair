@@ -5,7 +5,7 @@
 #include "Model.h"
 #include "iostream"
 
-constexpr static unsigned int NUM_STRANDS = 800;
+constexpr static unsigned int NUM_STRANDS = 1000;
 constexpr static unsigned int NUM_CURVE_POINTS = 10;
 
 struct Strand {

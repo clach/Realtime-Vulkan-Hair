@@ -17,7 +17,7 @@ float generateRandomFloat() {
 int generateRandomInt(int min, int max) {
 	int scale = (max - min) + min;
 	if (scale == 0) {
-		// throw exception?
+		// TODO: throw exception?
 	}
 	return rand() % scale;
 }
@@ -85,6 +85,7 @@ int GeneratePointsOnMesh(std::string filename, std::vector<glm::vec3>& points, s
 		}
 	}
 
+	srand(8);
 	for (int i = 0; i < NUM_STRANDS; i++)
 	{
 		// select triangle at random
@@ -98,12 +99,12 @@ int GeneratePointsOnMesh(std::string filename, std::vector<glm::vec3>& points, s
 
 		float u = generateRandomFloat();
 		float v = generateRandomFloat();
-		if (u + v > 1) {
+		if (u + v >= 1.f) {
 			u = 1 - u;
 			v = 1 - v;
 		}
 
-		glm::vec3 newPos = p1 * u + p2 * v + p3 * (1 - u - v);
+		glm::vec3 newPos = p1 * u + p2 * v + p3 * (1.f - u - v);
 		points.push_back(newPos);
 		pointNormals.push_back(n);
 	}
@@ -155,7 +156,7 @@ Hair::Hair(Device* device, VkCommandPool commandPool, std::string objFilename) :
 
 	for (int i = 0; i < numStrands; i++) {
 		Strand currentStrand = Strand();
-		float length = 2.0;
+		float length = 2.f;
 
 		// initialize curve point position, velocity and correction vector data
 		glm::vec3 currPoint = pointsOnMesh[i];

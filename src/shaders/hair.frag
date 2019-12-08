@@ -142,7 +142,10 @@ void main() {
 	const vec3 sigma_a = vec3(0.132, 0.212, 0.78); // absorption coeffcient
 	const float eccentricity = 0.85; // eccentricity: [0.85, 1]
 	//vec3 C = vec3(213, 124, 40) * over255;
-	vec3 C = vec3(216,192,120) * over255;
+	const vec3 blonde = vec3(216,192,120);
+	const vec3 auburn = vec3(176, 57, 0);
+	const vec3 midBrown = vec3(101, 67, 33);
+	vec3 C = midBrown * over255;
 	const float roughness = 0.2;
 	const float shift = 0.005;
 
@@ -219,7 +222,7 @@ void main() {
 	vec3 N_TRT = A_TT * D_TT;
 
 	// single scattering function S
-	vec3 S_single = (N_R * M_R + 0.5 * N_TT * M_TT + 0.5 * N_TRT * M_TRT) / (cosTheta_d * cosTheta_d); 
+	vec3 S_single = (1.3 * N_R * M_R + 0.5 * N_TT * M_TT + 0.5 * N_TRT * M_TRT) / (cosTheta_d * cosTheta_d); 
 
 	// gradient color
 	vec3 c1 = vec3(171, 146, 99) * over255;
@@ -254,5 +257,5 @@ void main() {
 	vec3 S_multi = sqrt(C) * ((dot(fakeNormal, w_i) + 1.f) / (4.f * PI)) * Cexp;
 
 	//outColor = vec4(S * (1.f - opacity), 1.0);
-	outColor = vec4(clamp(((S_single + S_multi) * (1.f - shadow) + 0.3 * C) * (0.5 * abs(random(vec2(in_uv.x, in_uv.x))) + 0.75), 0.f, 1.f), 0.75);
+	outColor = vec4(clamp(((S_single + S_multi) * (1.f - shadow) + 0.3 * C) * (0.8 * abs(random(vec2(in_uv.x, in_uv.x))) + 0.6), 0.f, 1.f), 1.f);
 }
