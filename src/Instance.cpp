@@ -9,6 +9,7 @@ const bool ENABLE_VALIDATION = false;
 const bool ENABLE_VALIDATION = true;
 #endif
 
+
 namespace {
     const std::vector<const char*> validationLayers = {
         "VK_LAYER_LUNARG_standard_validation"
@@ -40,6 +41,7 @@ namespace {
         return VK_FALSE;
     }
 }
+
 
 Instance::Instance(const char* applicationName, unsigned int additionalExtensionCount, const char** additionalExtensions) {
     // --- Specify details about our application ---
@@ -80,29 +82,36 @@ Instance::Instance(const char* applicationName, unsigned int additionalExtension
     initDebugReport();
 }
 
+
 VkInstance Instance::GetVkInstance() {
     return instance;
 }
+
 
 VkPhysicalDevice Instance::GetPhysicalDevice() {
     return physicalDevice;
 }
 
+
 const VkSurfaceCapabilitiesKHR& Instance::GetSurfaceCapabilities() const {
     return surfaceCapabilities;
 }
+
 
 const QueueFamilyIndices& Instance::GetQueueFamilyIndices() const {
     return queueFamilyIndices;
 }
 
+
 const std::vector<VkSurfaceFormatKHR>& Instance::GetSurfaceFormats() const {
     return surfaceFormats;
 }
 
+
 const std::vector<VkPresentModeKHR>& Instance::GetPresentModes() const {
     return presentModes;
 }
+
 
 uint32_t Instance::GetMemoryTypeIndex(uint32_t typeBits, VkMemoryPropertyFlags properties) const {
     // Iterate over all memory types available for the device used in this example
@@ -116,6 +125,7 @@ uint32_t Instance::GetMemoryTypeIndex(uint32_t typeBits, VkMemoryPropertyFlags p
     }
     throw std::runtime_error("Could not find a suitable memory type!");
 }
+
 
 VkFormat Instance::GetSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const {
     for (VkFormat format : candidates) {
@@ -132,6 +142,7 @@ VkFormat Instance::GetSupportedFormat(const std::vector<VkFormat>& candidates, V
 
     throw std::runtime_error("Failed to find supported format");
 }
+
 
 void Instance::initDebugReport() {
     if (ENABLE_VALIDATION) {
@@ -236,6 +247,7 @@ namespace {
     }
 }
 
+
 void Instance::PickPhysicalDevice(std::vector<const char*> deviceExtensions, QueueFlagBits requiredQueues, VkSurfaceKHR surface) {
     // List the graphics cards on the machine
     uint32_t deviceCount = 0;
@@ -299,6 +311,7 @@ void Instance::PickPhysicalDevice(std::vector<const char*> deviceExtensions, Que
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
 }
 
+
 Device* Instance::CreateDevice(QueueFlagBits requiredQueues, VkPhysicalDeviceFeatures deviceFeatures) {
     std::set<int> uniqueQueueFamilies;
     bool queueSupport = true;
@@ -359,6 +372,7 @@ Device* Instance::CreateDevice(QueueFlagBits requiredQueues, VkPhysicalDeviceFea
 
     return new Device(this, vkDevice, queues);
 }
+
 
 Instance::~Instance() {
     if (ENABLE_VALIDATION) {

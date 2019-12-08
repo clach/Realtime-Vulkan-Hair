@@ -1,10 +1,8 @@
 #include <iostream>
-
 #define GLM_FORCE_RADIANS
 // Use Vulkan depth range of 0.0 to 1.0 instead of OpenGL
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/gtc/matrix_transform.hpp>
-
 #include "Camera.h"
 #include "BufferUtils.h"
 
@@ -20,6 +18,7 @@ Camera::Camera(Device* device, float aspectRatio) : device(device), eye(glm::vec
     vkMapMemory(device->GetVkDevice(), bufferMemory, 0, sizeof(CameraBufferObject), 0, &mappedData);
     memcpy(mappedData, &cameraBufferObject, sizeof(CameraBufferObject));
 }
+
 
 Camera::Camera(Device* device, float aspectRatio, glm::vec3 eye, float nearPlane, float farPlane) : device(device), eye(eye) {
 	r = 10.0f;
@@ -37,9 +36,11 @@ Camera::Camera(Device* device, float aspectRatio, glm::vec3 eye, float nearPlane
 	memcpy(mappedData, &cameraBufferObject, sizeof(CameraBufferObject));
 }
 
+
 VkBuffer Camera::GetBuffer() const {
     return buffer;
 }
+
 
 void Camera::UpdateOrbit(float deltaX, float deltaY, float deltaZ) {
     theta += deltaX;
@@ -57,6 +58,7 @@ void Camera::UpdateOrbit(float deltaX, float deltaY, float deltaZ) {
     memcpy(mappedData, &cameraBufferObject, sizeof(CameraBufferObject));
 }
 
+
 void Camera::TranslateCamera(glm::vec3 translation) {
 	this->eye += translation;
 
@@ -65,6 +67,7 @@ void Camera::TranslateCamera(glm::vec3 translation) {
 	cameraBufferObject.viewMatrix = glm::lookAt(6.5f * normal, glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	memcpy(mappedData, &cameraBufferObject, sizeof(CameraBufferObject));
 }
+
 
 Camera::~Camera() {
   vkUnmapMemory(device->GetVkDevice(), bufferMemory);

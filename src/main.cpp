@@ -22,6 +22,7 @@ bool DDown = false;
 bool QDown = false;
 bool EDown = false;
 
+
 namespace {
     void resizeCallback(GLFWwindow* window, int width, int height) {
         if (width == 0 || height == 0) return;
@@ -152,8 +153,8 @@ void moveSphere(VkCommandPool commandPool) {
 
 	renderer->scene->translateSphere(translation);
 	shadowCamera->TranslateCamera(translation);
-	//renderer->scene->GetModels().at(1)->translateModel(translation);
 }
+
 
 int main() {
     static constexpr char* applicationName = "Realtime Vulkan Hair";
@@ -210,8 +211,6 @@ int main() {
 		mannequinDiffuseImageMemory
 	);
 
-	// TODO: add capacity for multiple textures/normal maps/etc for a Model
-
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
 
@@ -255,7 +254,6 @@ int main() {
         scene->UpdateTime();
 		double previousTime = glfwGetTime();
 		moveSphere(transferCommandPool);
-		//renderer->UpdateShere();
 
         renderer->Frame();
 		double currentTime = glfwGetTime();

@@ -32,10 +32,12 @@ layout(location = 4) out vec3 out_viewDir;
 layout(location = 5) out vec3 out_lightDir;
 layout(location = 6) out vec4 out_fragPosLightSpace;
 
+
 // https://thebookofshaders.com/10/
 float random(vec2 st) {
     return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
 }
+
 
 void main() {
 	// TODO: play around with this for LOD/AA purposes

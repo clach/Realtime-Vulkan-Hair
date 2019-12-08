@@ -8,6 +8,7 @@ struct CameraBufferObject {
   glm::mat4 projectionMatrix;
 };
 
+
 class Camera {
 private:
     Device* device;

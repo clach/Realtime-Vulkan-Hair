@@ -20,6 +20,7 @@ namespace {
     }
 }
 
+
 // Wrap the shaders in shader modules
 VkShaderModule ShaderModule::Create(const std::vector<char>& code, VkDevice logicalDevice) {
     VkShaderModuleCreateInfo createInfo = {};
@@ -34,6 +35,7 @@ VkShaderModule ShaderModule::Create(const std::vector<char>& code, VkDevice logi
 
     return shaderModule;
 }
+
 
 VkShaderModule ShaderModule::Create(const std::string& filename, VkDevice logicalDevice) {
     return ShaderModule::Create(readFile(filename), logicalDevice);

@@ -63,8 +63,6 @@ public:
     void RecordCommandBuffers();
     void RecordComputeCommandBuffer();
 
-	//void UpdateSphere();
-
     void Frame();
 
 private:

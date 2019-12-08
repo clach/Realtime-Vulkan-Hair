@@ -7,16 +7,12 @@
 
 constexpr static unsigned int NUM_STRANDS = 800;
 constexpr static unsigned int NUM_CURVE_POINTS = 10;
-constexpr static float MIN_LENGTH = 6.0f;
-constexpr static float MAX_LENGTH = 8.0f;
-// TODO: Add more parameters of hair strands here as needed and adjust above values
 
 struct Strand {
 	// Attributes
 	glm::vec4 curvePoints[NUM_CURVE_POINTS];
 	glm::vec4 curveVels[NUM_CURVE_POINTS];
 	glm::vec4 correctionVecs[NUM_CURVE_POINTS];
-	//float len;
 
     static VkVertexInputBindingDescription getBindingDescription() {
         VkVertexInputBindingDescription bindingDescription = {};
@@ -49,15 +45,10 @@ struct Strand {
 			attributeDescriptions[i].offset = offsetof(Strand, correctionVecs[i - 2 * NUM_CURVE_POINTS]);
 		}
 
-		/*attributeDescriptions[3 * NUM_CURVE_POINTS].binding = 0;
-		attributeDescriptions[3 * NUM_CURVE_POINTS].location = 3 * NUM_CURVE_POINTS;
-		attributeDescriptions[3 * NUM_CURVE_POINTS].format = VK_FORMAT_R32_SFLOAT;
-		attributeDescriptions[3 * NUM_CURVE_POINTS].offset = offsetof(Strand, len);*/
-		// TODO: Add length and other attributes to attribute descriptions if needed
-
         return attributeDescriptions;
     }
 };
+
 
 struct StrandDrawIndirect {
 	uint32_t vertexCount;
@@ -65,6 +56,7 @@ struct StrandDrawIndirect {
 	uint32_t firstVertex;
 	uint32_t firstInstance;
 };
+
 
 class Hair : public Model {
 private:

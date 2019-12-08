@@ -67,6 +67,7 @@ Renderer::Renderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* c
     RecordComputeCommandBuffer();
 }
 
+
 void Renderer::CreateCommandPools() {
     VkCommandPoolCreateInfo graphicsPoolInfo = {};
     graphicsPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -86,6 +87,7 @@ void Renderer::CreateCommandPools() {
         throw std::runtime_error("Failed to create command pool");
     }
 }
+
 
 void Renderer::CreateRenderPass() {
     // Color buffer attachment represented by one of the images from the swap chain
@@ -153,6 +155,7 @@ void Renderer::CreateRenderPass() {
         throw std::runtime_error("Failed to create render pass");
     }
 }
+
 
 void Renderer::CreateShadowMapRenderPass() {
 	VkAttachmentDescription attachmentDescription = {};
@@ -277,6 +280,7 @@ void Renderer::CreateOpacityMapRenderPass() {
 	}
 }
 
+
 void Renderer::CreateCameraDescriptorSetLayout() {
     // Describe the binding of the descriptor set layout
     VkDescriptorSetLayoutBinding uboLayoutBinding = {};
@@ -299,6 +303,7 @@ void Renderer::CreateCameraDescriptorSetLayout() {
     }
 }
 
+
 void Renderer::CreateModelMatrixDescriptorSetLayout() {
     VkDescriptorSetLayoutBinding uboLayoutBinding = {};
     uboLayoutBinding.binding = 0;
@@ -320,6 +325,7 @@ void Renderer::CreateModelMatrixDescriptorSetLayout() {
     }
 }
 
+
 void Renderer::CreateTextureDescriptorSetLayout() {
 	VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
 	samplerLayoutBinding.binding = 0;
@@ -339,8 +345,8 @@ void Renderer::CreateTextureDescriptorSetLayout() {
 	if (vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &textureDescriptorSetLayout) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create descriptor set layout");
 	}
-
 }
+
 
 void Renderer::CreateHairDescriptorSetLayout() {
 	VkDescriptorSetLayoutBinding uboLayoutBinding = {};
@@ -370,6 +376,7 @@ void Renderer::CreateHairDescriptorSetLayout() {
 	}
 }
 
+
 void Renderer::CreateOpacityMapDescriptorSetLayout() {
 	VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
 	samplerLayoutBinding.binding = 0;
@@ -390,6 +397,7 @@ void Renderer::CreateOpacityMapDescriptorSetLayout() {
 		throw std::runtime_error("Failed to create descriptor set layout");
 	}
 }
+
 
 void Renderer::CreateTimeDescriptorSetLayout() {
     // Describe the binding of the descriptor set layout
@@ -413,6 +421,7 @@ void Renderer::CreateTimeDescriptorSetLayout() {
     }
 }
 
+
 void Renderer::CreateCollidersDescriptorSetLayout() {
 	// Describe the binding of the descriptor set layout
 	VkDescriptorSetLayoutBinding uboLayoutBinding = {};
@@ -435,6 +444,7 @@ void Renderer::CreateCollidersDescriptorSetLayout() {
 	}
 }
 
+
 void Renderer::CreateGridDescriptorSetLayout() {
 	VkDescriptorSetLayoutBinding gridValuesLayoutBinding = {};
 	gridValuesLayoutBinding.binding = 0;										// binding value in compute shader
@@ -456,10 +466,8 @@ void Renderer::CreateGridDescriptorSetLayout() {
 	}
 }
 
-void Renderer::CreateComputeDescriptorSetLayout() {
-    // NOTE: Remember this is like a class definition stating what types of information
-    // will be stored at each binding
 
+void Renderer::CreateComputeDescriptorSetLayout() {
 	VkDescriptorSetLayoutBinding strandsPosLayoutBinding = {};
 	strandsPosLayoutBinding.binding = 0;										// binding value in compute shader
 	strandsPosLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -487,6 +495,7 @@ void Renderer::CreateComputeDescriptorSetLayout() {
 		throw std::runtime_error("Failed to create descriptor set layout");
 	}
 }
+
 
 void Renderer::CreateDescriptorPool() {
     // Describe which descriptor types that the descriptor sets will contain
@@ -527,6 +536,7 @@ void Renderer::CreateDescriptorPool() {
     }
 }
 
+
 void Renderer::CreateCameraDescriptorSet() {
     // Describe the desciptor set
     VkDescriptorSetLayout layouts[] = { cameraDescriptorSetLayout };
@@ -561,6 +571,7 @@ void Renderer::CreateCameraDescriptorSet() {
     // Update descriptor sets
     vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
+
 
 void Renderer::CreateShadowCameraDescriptorSet() {
 	// Describe the desciptor set
@@ -597,9 +608,9 @@ void Renderer::CreateShadowCameraDescriptorSet() {
 	vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
 
+
 void Renderer::CreateModelDescriptorSet() {
     // Describe the desciptor set
-	//std::vector<VkDescriptorSetLayout> layouts(scene->GetModels().size(), modelDescriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = descriptorPool;
@@ -633,7 +644,6 @@ void Renderer::CreateModelDescriptorSet() {
     // Update descriptor sets
     vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
-
 
 
 void Renderer::CreateTextureDescriptorSets() {
@@ -728,6 +738,7 @@ void Renderer::CreateHairDescriptorSets() {
 	vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
 
+
 void Renderer::CreateOpacityMapDescriptorSets() {
 	opacityMapDescriptorSets.resize(scene->GetHair().size());
 
@@ -821,6 +832,7 @@ void Renderer::CreateOpacityMapHairDescriptorSets() {
 	vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
 
+
 void Renderer::CreateTimeDescriptorSet() {
     // Describe the desciptor set
     VkDescriptorSetLayout layouts[] = { timeDescriptorSetLayout };
@@ -855,6 +867,7 @@ void Renderer::CreateTimeDescriptorSet() {
     // Update descriptor sets
     vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
+
 
 void Renderer::CreateCollidersDescriptorSets() {
 	// Describe the desciptor set
@@ -891,6 +904,7 @@ void Renderer::CreateCollidersDescriptorSets() {
 	vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
 
+
 void Renderer::CreateGridDescriptorSets() {
 	// Describe the desciptor set
 	VkDescriptorSetLayout layouts[] = { gridDescriptorSetLayout };
@@ -925,6 +939,7 @@ void Renderer::CreateGridDescriptorSets() {
 	// Update descriptor sets
 	vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
+
 
 void Renderer::CreateComputeDescriptorSets() {   
 	computeDescriptorSets.resize(scene->GetHair().size());
@@ -980,6 +995,7 @@ void Renderer::CreateComputeDescriptorSets() {
 	// Update descriptor sets
 	vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
+
 
 void Renderer::CreateGraphicsPipeline() {
     VkShaderModule vertShaderModule = ShaderModule::Create("shaders/graphics.vert.spv", logicalDevice);
@@ -1139,6 +1155,7 @@ void Renderer::CreateGraphicsPipeline() {
     vkDestroyShaderModule(logicalDevice, vertShaderModule, nullptr);
     vkDestroyShaderModule(logicalDevice, fragShaderModule, nullptr);
 }
+
 
 void Renderer::CreateShadowMapPipeline() {
 	// --- Set up programmable shaders ---
@@ -1332,6 +1349,7 @@ void Renderer::CreateShadowMapPipeline() {
 	vkDestroyShaderModule(logicalDevice, teseShaderModule, nullptr);
 	vkDestroyShaderModule(logicalDevice, geomShaderModule, nullptr);
 }
+
 
 void Renderer::CreateOpacityMapPipeline() {
 	// --- Set up programmable shaders ---
@@ -1532,6 +1550,7 @@ void Renderer::CreateOpacityMapPipeline() {
 	vkDestroyShaderModule(logicalDevice, fragShaderModule, nullptr);
 }
 
+
 void Renderer::CreateHairPipeline() {
     // --- Set up programmable shaders ---
     VkShaderModule vertShaderModule = ShaderModule::Create("shaders/hair.vert.spv", logicalDevice);
@@ -1725,6 +1744,7 @@ void Renderer::CreateHairPipeline() {
     vkDestroyShaderModule(logicalDevice, fragShaderModule, nullptr);
 }
 
+
 void Renderer::CreateComputePipeline() {
     // Set up programmable shaders
     VkShaderModule computeShaderModule = ShaderModule::Create("shaders/compute.comp.spv", logicalDevice);
@@ -1766,6 +1786,7 @@ void Renderer::CreateComputePipeline() {
     // No need for shader modules anymore
     vkDestroyShaderModule(logicalDevice, computeShaderModule, nullptr);
 }
+
 
 void Renderer::CreateFrameResources() {
     imageViews.resize(swapChain->GetCount());
@@ -1842,6 +1863,7 @@ void Renderer::CreateFrameResources() {
     }
 }
 
+
 void Renderer::DestroyFrameResources() {
     for (size_t i = 0; i < imageViews.size(); i++) {
         vkDestroyImageView(logicalDevice, imageViews[i], nullptr);
@@ -1855,6 +1877,7 @@ void Renderer::DestroyFrameResources() {
         vkDestroyFramebuffer(logicalDevice, framebuffers[i], nullptr);
     }
 }
+
 
 void Renderer::CreateShadowMapFrameResources() {
 	Image::Create(device,
@@ -1962,6 +1985,7 @@ void Renderer::CreateOpacityMapFrameResources() {
 	}
 }
 
+
 void Renderer::DestroyOpacityMapFrameResources() {
 	vkDestroyImageView(logicalDevice, opacityMapImageView, nullptr);
 	vkFreeMemory(logicalDevice, opacityMapImageMemory, nullptr);
@@ -2051,6 +2075,7 @@ void Renderer::RecordComputeCommandBuffer() {
         throw std::runtime_error("Failed to record compute command buffer");
     }
 }
+
 
 void Renderer::RecordCommandBuffers() {
     commandBuffers.resize(swapChain->GetCount());
@@ -2279,6 +2304,7 @@ void Renderer::RecordCommandBuffers() {
     }
 }
 
+
 void Renderer::Frame() {
 
     VkSubmitInfo computeSubmitInfo = {};
@@ -2322,24 +2348,6 @@ void Renderer::Frame() {
     }
 }
 
-
-//void Renderer::UpdateSphere() {
-//	VkCommandBufferBeginInfo beginInfo = {};
-//	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-//	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-//	beginInfo.pInheritanceInfo = nullptr;
-//
-//	// ~ Start recording ~
-//	if (vkBeginCommandBuffer(computeCommandBuffer, &beginInfo) != VK_SUCCESS) {
-//		throw std::runtime_error("Failed to begin recording compute command buffer");
-//	}	
-//	
-//	vkCmdUpdateBuffer(computeCommandBuffer, this->scene->GetCollidersBuffer(), 0, sizeof(Collider) * this->scene->GetColliders().size(), this->scene->GetColliders().data());
-//
-//	if (vkEndCommandBuffer(computeCommandBuffer) != VK_SUCCESS) {
-//		throw std::runtime_error("Failed to record compute command buffer");
-//	}
-//}
 
 Renderer::~Renderer() {
     vkDeviceWaitIdle(logicalDevice);
