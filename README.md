@@ -35,6 +35,7 @@ We created a real-time hair simulation using Vulkan. Our pipeline simulates phys
   - Complete single scattering
   - Shadow mapping
   - Multi scattering
+  - Random strand deviations
   - Multiple strand interpolation
   - Polish
   
@@ -80,14 +81,72 @@ The following gif demonstrates hair-object collision:
 
 ![](images/collisionExample.gif)
 
-### Hair-Hair Collision
-## Tessellation
+### Hair-Hair Interaction
+To acheive friction between the strands of hair, we create a velocity field out of the strand's velocities and use this field to effectively smooth out the velocities over the strands.
+
+When we first set the velocity of a point on a strand, we add that point's contribution to a background uniform grid, which is empty at the beginning of each timestep. We add both the density of the point and its velocity contribution to the 8 neighboring grid points. The contribution to each of the 8 points is based on a linaer interpolation of the distance in each dimension from the strand point to teh grid point:
+
+```
+For each of the 8 neighbor gridPoints:
+  xWeight = 1 - abs(strandPoint.x - gridPoint.x)
+  yWeight = 1 - abs(strandPoint.y - gridPoint.y)
+  zWeight = 1 - abs(strandPoint.z - gridPoint.z)
+
+  totalWeight = xWeight * yWeight * zWeight
+
+  gridPoint.density += totalWeight
+  gridPoint.velocity += totalWeight * strandPoint.velocity
+```
+Note that the strand point positions used in the above calculations are their world positions transformed into index grid space, where each grid cell is 1x1x1. Additionally, because multiple strand points may contribute to the same grid point, we must use atomic adds when adding to the grid point values.  
+
+Once all of strand points have added their contributions to the grid, we transfer the grid data back to each of the strands using the same interpolation values for the surrounding 8 grid points:
+```
+velocityFromGrid = vec3(0)
+For each of the 8 neighbor gridPoints:
+  xWeight = 1 - abs(strandPoint.x - gridPoint.x)
+  yWeight = 1 - abs(strandPoint.y - gridPoint.y)
+  zWeight = 1 - abs(strandPoint.z - gridPoint.z)
+
+  totalWeight = xWeight * yWeight * zWeight
+
+  gridPointVelocity = gridPoint.velocity / gridPoint.density
+  velocityFromGrid += totalWeight * gridPointVelocity
+```
+This velocity from grid value represents a smoothed out velocity among the nearby strands of hair. We do not want to set the new velocity directly to this grid velocity, as this will exhibit too much friction and damping. Instead, we have a friction parameter, in our case approximate 0.05, and calculate the final velocity as a mix between the original and the one found on the grid:
+```
+Friction = 0.05
+velocity = (1 - friction) * velocity + friction * velocityFromGrid
+```
+This grid transfer process causes nearby strands of hair to move with more similar velocities. This mimics friction, as if two strands collide, they will stick together a little bit, meaning their velocities align. This friction causes natural hair clumping, as nearby strands tend to try to move together. 
+
+The friction also creates some volume for the hair. If many strands are being pushed towards other still strands, the small velocities of the still strands will gradually transfer over to the strands being pushed towards them, slow those strands down. Because of this gradual slow down, rather than continuing to fall directly on top of the still strands, the moving strands will slow to a stop earlier, creating volume as they rest on top of the still strands. 
+
+This velocity smoothing creates some volume, but not the full effect of volume, as the strands can still overlap each other. To create full volume, there must be an additional repulsion force between strands.
+
+## Tessellation and Geometry Shader
+The physics is only performed on individual points along each strand of hair. To have the points look like actual hair strands, we need to connect the points with smooth curves, duplicate the guide strands to add density, and convert the hairs from lines to 2D geometry.
+
 ### Bezier Curves
+Each strand of hair is represented a a string of individual points. To create a smoothly curved hair strand, I interpolate between these points using a Bezier curve interpolation. The Bezier interpolation is performed on each segment of the curve. Each segment is given 4 control points which create a hull for the segment. Based on the distance along the segment, we interpolate between the control points to create a curve that fits the shape of the hull. The control point positions are determined based on the neighboring curve points of the current segment and are placed in such a way that ensures continuity between adjacent segment's curves. 
+
+The following is an example of a Bezier curve (red) with its curve points (blue) and control points and hulls (yellow):
+
+![](images/BezierExample.PNG)
+
 ### Strand Interpolation
+#### Single Strand
+#### Multiple Strand
+### Random Strand Deviation
 ## Rendering
 ### Single Scattering
 ### Shadow Mapping
 ### Multiple Scattering
 
 # References
+- Fast Simulation of Inextensible Hair and Fur (Müller, Kim, Chentanez)
+- Volumetric methods for simulation and rendering of hair (Petrovic, Henne, Anderson)
+- Position Based Dynamics (Müller, Heidelberger, Hennix, Ratcliff)
+- CIS 563 Course Material (Chenfanfu Jiang)
+- CIS 562 Course Material (Stephen Lane)
+- Real-Time Hair Rendering, Master Thesis (Markus Rapp)
 
