@@ -10,6 +10,7 @@
 #define SHADOWMAP_HEIGHT 720
 //#define DEPTH_FORMAT VK_FORMAT_D16_UNORM
 #define DEPTH_FORMAT VK_FORMAT_D32_SFLOAT
+#define OPACITY_MAP_FORMAT VK_FORMAT_R8G8B8A8_UNORM
 #define SHADOWMAP_FILTER VK_FILTER_LINEAR
 
 static constexpr unsigned int WORKGROUP_SIZE = 32;
@@ -26,11 +27,13 @@ Renderer::Renderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* c
 
     CreateRenderPass();
 	CreateShadowMapRenderPass();
+	CreateOpacityMapRenderPass();
 
     CreateCameraDescriptorSetLayout();
     CreateModelMatrixDescriptorSetLayout();
     CreateTextureDescriptorSetLayout();
 	CreateHairDescriptorSetLayout();
+	CreateOpacityMapDescriptorSetLayout();
     CreateTimeDescriptorSetLayout();
 	CreateCollidersDescriptorSetLayout();
 	CreateGridDescriptorSetLayout();
@@ -40,18 +43,22 @@ Renderer::Renderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* c
 
 	CreateFrameResources();
 	CreateShadowMapFrameResources();
+	CreateOpacityMapFrameResources();
 
     CreateCameraDescriptorSet();
     CreateModelDescriptorSet();
     CreateTextureDescriptorSets();
     CreateShadowCameraDescriptorSet();
     CreateHairDescriptorSets();
+	CreateOpacityMapHairDescriptorSets();
+	CreateOpacityMapDescriptorSets();
     CreateTimeDescriptorSet();
 	CreateCollidersDescriptorSets();
 	CreateGridDescriptorSets();
     CreateComputeDescriptorSets();
 
 	CreateShadowMapPipeline();
+	CreateOpacityMapPipeline();
     CreateGraphicsPipeline();
     CreateHairPipeline();
     CreateComputePipeline();
@@ -209,6 +216,67 @@ void Renderer::CreateShadowMapRenderPass() {
 	}
 }
 
+
+void Renderer::CreateOpacityMapRenderPass() {
+	VkAttachmentDescription colorAttachment = {};
+	colorAttachment.format = swapChain->GetVkImageFormat();
+	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; // VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL ???
+
+	// Create a color attachment reference to be used with subpass
+	VkAttachmentReference colorAttachmentRef = {};
+	colorAttachmentRef.attachment = 0;
+	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	VkSubpassDescription subpass = {};
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	//subpass.inputAttachmentCount = 0;
+	//subpass.pInputAttachments = NULL;
+	subpass.colorAttachmentCount = 1;
+	subpass.pColorAttachments = &colorAttachmentRef;
+	//subpass.pResolveAttachments = NULL;
+	//subpass.pDepthStencilAttachment = &colorAttachmentRef;
+	//subpass.preserveAttachmentCount = 0;
+	//subpass.pPreserveAttachments = NULL;
+
+	std::array<VkSubpassDependency, 2> dependencies;
+	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependencies[0].dstSubpass = 0;
+	dependencies[0].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependencies[0].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+	dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+	dependencies[1].srcSubpass = 0;
+	dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+	dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+	dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+	// Create render pass
+	VkRenderPassCreateInfo renderPassCreateInfo = {};
+	renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	renderPassCreateInfo.pNext = NULL;
+	renderPassCreateInfo.attachmentCount = 1;
+	renderPassCreateInfo.pAttachments = &colorAttachment;
+	renderPassCreateInfo.subpassCount = 1;
+	renderPassCreateInfo.pSubpasses = &subpass;
+	renderPassCreateInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
+	renderPassCreateInfo.pDependencies = dependencies.data();
+
+	if (vkCreateRenderPass(logicalDevice, &renderPassCreateInfo, NULL, &opacityMapRenderPass) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create render pass");
+	}
+}
+
 void Renderer::CreateCameraDescriptorSetLayout() {
     // Describe the binding of the descriptor set layout
     VkDescriptorSetLayoutBinding uboLayoutBinding = {};
@@ -298,6 +366,27 @@ void Renderer::CreateHairDescriptorSetLayout() {
 	layoutInfo.pBindings = bindings.data();
 
 	if (vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &hairDescriptorSetLayout) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create descriptor set layout");
+	}
+}
+
+void Renderer::CreateOpacityMapDescriptorSetLayout() {
+	VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
+	samplerLayoutBinding.binding = 0;
+	samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	samplerLayoutBinding.descriptorCount = 1;
+	samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	samplerLayoutBinding.pImmutableSamplers = nullptr;
+
+	std::vector<VkDescriptorSetLayoutBinding> bindings = { samplerLayoutBinding };
+
+	// Create the descriptor set layout
+	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+	layoutInfo.pBindings = bindings.data();
+
+	if (vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &opacityMapDescriptorSetLayout) != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create descriptor set layout");
 	}
 }
@@ -406,10 +495,10 @@ void Renderer::CreateDescriptorPool() {
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , 2},
 
         // Models + Strands
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER , static_cast<uint32_t>(scene->GetModels().size() + scene->GetHair().size()) },
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER , static_cast<uint32_t>(1 + 2 * scene->GetModels().size() + scene->GetHair().size()) },
 
         // Models + Strands
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , static_cast<uint32_t>(scene->GetModels().size() + scene->GetHair().size()) },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , static_cast<uint32_t>(2 * scene->GetModels().size() + scene->GetHair().size()) },
 
         // Time (compute)
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , 1 },
@@ -431,7 +520,7 @@ void Renderer::CreateDescriptorPool() {
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = 10; // TODO: idk what determines this number
+    poolInfo.maxSets = 12; // TODO: idk what determines this number
 
     if (vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create descriptor pool");
@@ -587,8 +676,6 @@ void Renderer::CreateTextureDescriptorSets() {
 
 
 void Renderer::CreateHairDescriptorSets() {
-	// TODO: Create Descriptor sets for the hair.
-	// This should involve creating descriptor sets which point to the model matrix of each group of hair
 	hairDescriptorSets.resize(scene->GetHair().size());
 
 	// Describe the desciptor set
@@ -630,6 +717,99 @@ void Renderer::CreateHairDescriptorSets() {
 
 		descriptorWrites[2 * i + 1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptorWrites[2 * i + 1].dstSet = hairDescriptorSets[i];
+		descriptorWrites[2 * i + 1].dstBinding = 1;
+		descriptorWrites[2 * i + 1].dstArrayElement = 0;
+		descriptorWrites[2 * i + 1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[2 * i + 1].descriptorCount = 1;
+		descriptorWrites[2 * i + 1].pImageInfo = &imageInfo;
+	}
+
+	// Update descriptor sets
+	vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+}
+
+void Renderer::CreateOpacityMapDescriptorSets() {
+	opacityMapDescriptorSets.resize(scene->GetHair().size());
+
+	// Describe the desciptor set
+	VkDescriptorSetLayout layouts[] = { opacityMapDescriptorSetLayout };
+	VkDescriptorSetAllocateInfo allocInfo = {};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = descriptorPool;
+	allocInfo.descriptorSetCount = static_cast<uint32_t>(opacityMapDescriptorSets.size());
+	allocInfo.pSetLayouts = layouts;
+
+	// Allocate descriptor sets
+	if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, opacityMapDescriptorSets.data()) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to allocate descriptor set");
+	}
+
+	std::vector<VkWriteDescriptorSet> descriptorWrites(opacityMapDescriptorSets.size());
+
+	for (uint32_t i = 0; i < scene->GetHair().size(); ++i) {
+		// Bind image and sampler resources to the descriptor
+		VkDescriptorImageInfo imageInfo = {};
+		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; // VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+		imageInfo.imageView = opacityMapImageView;
+		imageInfo.sampler = opacityMapSampler;
+
+		descriptorWrites[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[i].dstSet = opacityMapDescriptorSets[i];
+		descriptorWrites[i].dstBinding = 0;
+		descriptorWrites[i].dstArrayElement = 0;
+		descriptorWrites[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[i].descriptorCount = 1;
+		descriptorWrites[i].pImageInfo = &imageInfo;
+	}
+
+	// Update descriptor sets
+	vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+}
+
+void Renderer::CreateOpacityMapHairDescriptorSets() {
+	// TODO: Create Descriptor sets for the hair.
+	// This should involve creating descriptor sets which point to the model matrix of each group of hair
+	opacityMapHairDescriptorSets.resize(scene->GetHair().size());
+
+	// Describe the desciptor set
+	VkDescriptorSetLayout layouts[] = { hairDescriptorSetLayout };
+	VkDescriptorSetAllocateInfo allocInfo = {};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = descriptorPool;
+	allocInfo.descriptorSetCount = static_cast<uint32_t>(opacityMapHairDescriptorSets.size());
+	allocInfo.pSetLayouts = layouts;
+
+	// Allocate descriptor sets
+	if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, opacityMapHairDescriptorSets.data()) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to allocate descriptor set");
+	}
+
+	std::vector<VkWriteDescriptorSet> descriptorWrites(2 * opacityMapHairDescriptorSets.size());
+
+	for (uint32_t i = 0; i < scene->GetHair().size(); ++i) {
+		VkDescriptorBufferInfo hairBufferInfo = {};
+		hairBufferInfo.buffer = scene->GetHair()[i]->GetModelBuffer();
+		hairBufferInfo.offset = 0;
+		hairBufferInfo.range = sizeof(ModelBufferObject);
+
+		// Bind image and sampler resources to the descriptor
+		VkDescriptorImageInfo imageInfo = {};
+		imageInfo.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+		imageInfo.imageView = shadowMapImageView;
+		imageInfo.sampler = shadowMapSampler;
+
+		descriptorWrites[2 * i + 0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[2 * i + 0].dstSet = opacityMapHairDescriptorSets[i];
+		descriptorWrites[2 * i + 0].dstBinding = 0;
+		descriptorWrites[2 * i + 0].dstArrayElement = 0;
+		descriptorWrites[2 * i + 0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrites[2 * i + 0].descriptorCount = 1;
+		descriptorWrites[2 * i + 0].pBufferInfo = &hairBufferInfo;
+		descriptorWrites[2 * i + 0].pImageInfo = nullptr;
+		descriptorWrites[2 * i + 0].pTexelBufferView = nullptr;
+
+		descriptorWrites[2 * i + 1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[2 * i + 1].dstSet = opacityMapHairDescriptorSets[i];
 		descriptorWrites[2 * i + 1].dstBinding = 1;
 		descriptorWrites[2 * i + 1].dstArrayElement = 0;
 		descriptorWrites[2 * i + 1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -746,9 +926,7 @@ void Renderer::CreateGridDescriptorSets() {
 	vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
 
-void Renderer::CreateComputeDescriptorSets() {
-	// TODO: Create compute descriptor sets. 
-   
+void Renderer::CreateComputeDescriptorSets() {   
 	computeDescriptorSets.resize(scene->GetHair().size());
 
 	// Describe the desciptor set
@@ -968,7 +1146,6 @@ void Renderer::CreateShadowMapPipeline() {
 	VkShaderModule tescShaderModule = ShaderModule::Create("shaders/hair.tesc.spv", logicalDevice);
 	VkShaderModule teseShaderModule = ShaderModule::Create("shaders/hair.tese.spv", logicalDevice);
 	VkShaderModule geomShaderModule = ShaderModule::Create("shaders/hair.geom.spv", logicalDevice);
-	//VkShaderModule fragShaderModule = ShaderModule::Create("shaders/hair.frag.spv", logicalDevice);
 
 	// Assign each shader module to the appropriate stage in the pipeline
 	VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
@@ -995,13 +1172,6 @@ void Renderer::CreateShadowMapPipeline() {
 	geomShaderStageInfo.module = geomShaderModule;
 	geomShaderStageInfo.pName = "main";
 
-	VkPipelineShaderStageCreateInfo fragShaderStageInfo = {};
-	fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-	//fragShaderStageInfo.module = fragShaderModule;
-	fragShaderStageInfo.pName = "main";
-
-	//VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, tescShaderStageInfo, teseShaderStageInfo, geomShaderStageInfo, fragShaderStageInfo };
 	VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, tescShaderStageInfo, teseShaderStageInfo, geomShaderStageInfo };
 
 	// --- Set up fixed-function stages ---
@@ -1161,7 +1331,205 @@ void Renderer::CreateShadowMapPipeline() {
 	vkDestroyShaderModule(logicalDevice, tescShaderModule, nullptr);
 	vkDestroyShaderModule(logicalDevice, teseShaderModule, nullptr);
 	vkDestroyShaderModule(logicalDevice, geomShaderModule, nullptr);
-	//vkDestroyShaderModule(logicalDevice, fragShaderModule, nullptr);
+}
+
+void Renderer::CreateOpacityMapPipeline() {
+	// --- Set up programmable shaders ---
+	VkShaderModule vertShaderModule = ShaderModule::Create("shaders/hair.vert.spv", logicalDevice);
+	VkShaderModule tescShaderModule = ShaderModule::Create("shaders/hair.tesc.spv", logicalDevice);
+	VkShaderModule teseShaderModule = ShaderModule::Create("shaders/hair.tese.spv", logicalDevice);
+	VkShaderModule geomShaderModule = ShaderModule::Create("shaders/hair.geom.spv", logicalDevice);
+	VkShaderModule fragShaderModule = ShaderModule::Create("shaders/hairOpacity.frag.spv", logicalDevice);
+
+	// Assign each shader module to the appropriate stage in the pipeline
+	VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
+	vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+	vertShaderStageInfo.module = vertShaderModule;
+	vertShaderStageInfo.pName = "main";
+
+	VkPipelineShaderStageCreateInfo tescShaderStageInfo = {};
+	tescShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	tescShaderStageInfo.stage = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
+	tescShaderStageInfo.module = tescShaderModule;
+	tescShaderStageInfo.pName = "main";
+
+	VkPipelineShaderStageCreateInfo teseShaderStageInfo = {};
+	teseShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	teseShaderStageInfo.stage = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+	teseShaderStageInfo.module = teseShaderModule;
+	teseShaderStageInfo.pName = "main";
+
+	VkPipelineShaderStageCreateInfo geomShaderStageInfo = {};
+	geomShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	geomShaderStageInfo.stage = VK_SHADER_STAGE_GEOMETRY_BIT;
+	geomShaderStageInfo.module = geomShaderModule;
+	geomShaderStageInfo.pName = "main";
+
+	VkPipelineShaderStageCreateInfo fragShaderStageInfo = {};
+	fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+	fragShaderStageInfo.module = fragShaderModule;
+	fragShaderStageInfo.pName = "main";
+
+	VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, tescShaderStageInfo, teseShaderStageInfo, geomShaderStageInfo, fragShaderStageInfo };
+
+	// --- Set up fixed-function stages ---
+
+	// Vertex input
+	VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
+	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+
+	auto bindingDescription = Strand::getBindingDescription();
+	auto attributeDescriptions = Strand::getAttributeDescriptions();
+
+	vertexInputInfo.vertexBindingDescriptionCount = 1;
+	vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+	vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+
+	// Input Assembly
+	VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
+	inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+	inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
+	inputAssembly.primitiveRestartEnable = VK_FALSE;
+
+	// Viewports and Scissors (rectangles that define in which regions pixels are stored)
+	VkViewport viewport = {};
+	viewport.x = 0.0f;
+	viewport.y = 0.0f;
+	viewport.width = static_cast<float>(swapChain->GetVkExtent().width);
+	viewport.height = static_cast<float>(swapChain->GetVkExtent().height);
+	viewport.minDepth = 0.0f;
+	viewport.maxDepth = 1.0f;
+
+	VkRect2D scissor = {};
+	scissor.offset = { 0, 0 };
+	scissor.extent = swapChain->GetVkExtent();
+
+	VkPipelineViewportStateCreateInfo viewportState = {};
+	viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+	viewportState.viewportCount = 1;
+	viewportState.pViewports = &viewport;
+	viewportState.scissorCount = 1;
+	viewportState.pScissors = &scissor;
+
+	// Rasterizer
+	VkPipelineRasterizationStateCreateInfo rasterizer = {};
+	rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+	rasterizer.depthClampEnable = VK_FALSE;
+	rasterizer.rasterizerDiscardEnable = VK_FALSE;
+	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+	rasterizer.lineWidth = 1.0f;
+	rasterizer.cullMode = VK_CULL_MODE_NONE;
+	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+	rasterizer.depthBiasEnable = VK_TRUE;
+	rasterizer.depthBiasConstantFactor = 0.0f;
+	rasterizer.depthBiasClamp = 0.0f;
+	rasterizer.depthBiasSlopeFactor = 0.0f;
+
+	// Multisampling (turned off here)
+	VkPipelineMultisampleStateCreateInfo multisampling = {};
+	multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+	multisampling.sampleShadingEnable = VK_FALSE;
+	multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+	multisampling.minSampleShading = 1.0f;
+	multisampling.pSampleMask = nullptr;
+	multisampling.alphaToCoverageEnable = VK_FALSE;
+	multisampling.alphaToOneEnable = VK_FALSE;
+
+	// Depth testing
+	VkPipelineDepthStencilStateCreateInfo depthStencil = {};
+	depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	depthStencil.depthTestEnable = VK_TRUE;
+	depthStencil.depthWriteEnable = VK_TRUE;
+	depthStencil.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+	depthStencil.depthBoundsTestEnable = VK_FALSE;
+	depthStencil.minDepthBounds = 0.0f;
+	depthStencil.maxDepthBounds = 1.0f;
+	depthStencil.stencilTestEnable = VK_FALSE;
+
+	// TODO turn color blending on?
+	VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
+	colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+	colorBlendAttachment.blendEnable = VK_TRUE;
+	colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+	colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
+	colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+	colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+	colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+	colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+	// --> Global color blending settings
+	VkPipelineColorBlendStateCreateInfo colorBlending = {};
+	colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+	colorBlending.logicOpEnable = VK_FALSE;
+	colorBlending.logicOp = VK_LOGIC_OP_COPY;
+	colorBlending.attachmentCount = 1;
+	colorBlending.pAttachments = &colorBlendAttachment;
+	colorBlending.blendConstants[0] = 0.0f;
+	colorBlending.blendConstants[1] = 0.0f;
+	colorBlending.blendConstants[2] = 0.0f;
+	colorBlending.blendConstants[3] = 0.0f;
+
+	std::vector<VkDynamicState> dynamicStateEnables = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_DEPTH_BIAS };
+	VkPipelineDynamicStateCreateInfo dynamicState = {};
+	dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+	dynamicState.dynamicStateCount = dynamicStateEnables.size();
+	dynamicState.pDynamicStates = dynamicStateEnables.data();
+	dynamicState.pNext = 0;
+	dynamicState.flags = 0;
+
+	std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, hairDescriptorSetLayout, cameraDescriptorSetLayout };
+
+	// Pipeline layout: used to specify uniform values
+	VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
+	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
+	pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
+	pipelineLayoutInfo.pushConstantRangeCount = 0;
+	pipelineLayoutInfo.pPushConstantRanges = 0;
+
+	if (vkCreatePipelineLayout(logicalDevice, &pipelineLayoutInfo, nullptr, &opacityMapPipelineLayout) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create pipeline layout");
+	}
+
+	// Tessellation state
+	VkPipelineTessellationStateCreateInfo tessellationInfo = {};
+	tessellationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
+	tessellationInfo.pNext = NULL;
+	tessellationInfo.flags = 0;
+	tessellationInfo.patchControlPoints = 1;
+
+	// --- Create graphics pipeline ---
+	VkGraphicsPipelineCreateInfo pipelineInfo = {};
+	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	pipelineInfo.stageCount = 5;
+	pipelineInfo.pStages = shaderStages;
+	pipelineInfo.pVertexInputState = &vertexInputInfo;
+	pipelineInfo.pInputAssemblyState = &inputAssembly;
+	pipelineInfo.pViewportState = &viewportState;
+	pipelineInfo.pRasterizationState = &rasterizer;
+	pipelineInfo.pMultisampleState = &multisampling;
+	pipelineInfo.pDepthStencilState = &depthStencil;
+	pipelineInfo.pColorBlendState = &colorBlending;
+	pipelineInfo.pTessellationState = &tessellationInfo;
+	pipelineInfo.pDynamicState = &dynamicState;
+	pipelineInfo.layout = opacityMapPipelineLayout;
+	pipelineInfo.renderPass = opacityMapRenderPass;
+	pipelineInfo.subpass = 0;
+	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+	pipelineInfo.basePipelineIndex = -1;
+
+	if (vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &opacityMapPipeline) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create shadow map pipeline");
+	}
+
+	vkDestroyShaderModule(logicalDevice, vertShaderModule, nullptr);
+	vkDestroyShaderModule(logicalDevice, tescShaderModule, nullptr);
+	vkDestroyShaderModule(logicalDevice, teseShaderModule, nullptr);
+	vkDestroyShaderModule(logicalDevice, geomShaderModule, nullptr);
+	vkDestroyShaderModule(logicalDevice, fragShaderModule, nullptr);
 }
 
 void Renderer::CreateHairPipeline() {
@@ -1304,7 +1672,7 @@ void Renderer::CreateHairPipeline() {
     colorBlending.blendConstants[2] = 0.0f;
     colorBlending.blendConstants[3] = 0.0f;
 
-    std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, hairDescriptorSetLayout, cameraDescriptorSetLayout };
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts = { cameraDescriptorSetLayout, hairDescriptorSetLayout, cameraDescriptorSetLayout, opacityMapDescriptorSetLayout };
 
     // Pipeline layout: used to specify uniform values
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
@@ -1488,25 +1856,6 @@ void Renderer::DestroyFrameResources() {
     }
 }
 
-void Renderer::RecreateFrameResources() {
-	vkDestroyPipeline(logicalDevice, shadowMapPipeline, nullptr);
-    vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
-    vkDestroyPipeline(logicalDevice, hairPipeline, nullptr);
-    vkDestroyPipelineLayout(logicalDevice, shadowMapPipelineLayout, nullptr);
-    vkDestroyPipelineLayout(logicalDevice, graphicsPipelineLayout, nullptr);
-    vkDestroyPipelineLayout(logicalDevice, hairPipelineLayout, nullptr);
-    vkFreeCommandBuffers(logicalDevice, graphicsCommandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
-
-    DestroyFrameResources();
-	DestroyShadowMapFrameResources();
-    CreateFrameResources();
-	CreateShadowMapFrameResources();
-    CreateShadowMapPipeline();
-    CreateGraphicsPipeline();
-    CreateHairPipeline();
-    RecordCommandBuffers();
-}
-
 void Renderer::CreateShadowMapFrameResources() {
 	Image::Create(device,
 		SHADOWMAP_WIDTH,
@@ -1562,6 +1911,87 @@ void Renderer::DestroyShadowMapFrameResources() {
 	vkDestroyImage(logicalDevice, shadowMapImage, nullptr);
 	vkDestroyFramebuffer(logicalDevice, shadowMapFramebuffer, nullptr);
 	vkDestroySampler(logicalDevice, shadowMapSampler, nullptr);
+}
+
+void Renderer::CreateOpacityMapFrameResources() {
+	Image::Create(device,
+		SHADOWMAP_WIDTH,
+		SHADOWMAP_HEIGHT,
+		swapChain->GetVkImageFormat(),
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		opacityMapImage,
+		opacityMapImageMemory
+	);
+
+	opacityMapImageView = Image::CreateView(device, opacityMapImage, swapChain->GetVkImageFormat(), VK_IMAGE_ASPECT_COLOR_BIT);
+
+	// create sampler to sample from
+	VkSamplerCreateInfo sampler = {};
+	sampler.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	sampler.magFilter = SHADOWMAP_FILTER;
+	sampler.minFilter = SHADOWMAP_FILTER;
+	sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+	sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	sampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	sampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	sampler.mipLodBias = 0.f;
+	sampler.maxAnisotropy = 1.f;
+	sampler.minLod = 0.f;
+	sampler.maxLod = 1.f;
+	sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+
+	if (vkCreateSampler(logicalDevice, &sampler, nullptr, &opacityMapSampler) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create sampler");
+	}
+
+	// create framebuffer
+	VkFramebufferCreateInfo framebufferInfo = {};
+	framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	framebufferInfo.pNext = NULL;
+	framebufferInfo.renderPass = opacityMapRenderPass;
+	framebufferInfo.attachmentCount = 1;
+	framebufferInfo.pAttachments = &opacityMapImageView;
+	framebufferInfo.width = SHADOWMAP_WIDTH;
+	framebufferInfo.height = SHADOWMAP_HEIGHT;
+	framebufferInfo.layers = 1;
+
+	if (vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &opacityMapFramebuffer) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create framebuffer");
+	}
+}
+
+void Renderer::DestroyOpacityMapFrameResources() {
+	vkDestroyImageView(logicalDevice, opacityMapImageView, nullptr);
+	vkFreeMemory(logicalDevice, opacityMapImageMemory, nullptr);
+	vkDestroyImage(logicalDevice, opacityMapImage, nullptr);
+	vkDestroyFramebuffer(logicalDevice, opacityMapFramebuffer, nullptr);
+	vkDestroySampler(logicalDevice, opacityMapSampler, nullptr);
+}
+
+void Renderer::RecreateFrameResources() {
+	vkDestroyPipeline(logicalDevice, shadowMapPipeline, nullptr);
+	vkDestroyPipeline(logicalDevice, opacityMapPipeline, nullptr);
+	vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
+	vkDestroyPipeline(logicalDevice, hairPipeline, nullptr);
+	vkDestroyPipelineLayout(logicalDevice, shadowMapPipelineLayout, nullptr);
+	vkDestroyPipelineLayout(logicalDevice, opacityMapPipelineLayout, nullptr);
+	vkDestroyPipelineLayout(logicalDevice, graphicsPipelineLayout, nullptr);
+	vkDestroyPipelineLayout(logicalDevice, hairPipelineLayout, nullptr);
+	vkFreeCommandBuffers(logicalDevice, graphicsCommandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+
+	DestroyFrameResources();
+	DestroyShadowMapFrameResources();
+	DestroyOpacityMapFrameResources();
+	CreateFrameResources();
+	CreateShadowMapFrameResources();
+	CreateOpacityMapFrameResources();
+	CreateShadowMapPipeline();
+	CreateOpacityMapPipeline();
+	CreateGraphicsPipeline();
+	CreateHairPipeline();
+	RecordCommandBuffers();
 }
 
 
@@ -1667,23 +2097,23 @@ void Renderer::RecordCommandBuffers() {
 
 		vkCmdBeginRenderPass(commandBuffers[i], &shadowMapRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		VkViewport viewport;
-		viewport.height = SHADOWMAP_HEIGHT;
-		viewport.width = SHADOWMAP_WIDTH;
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
-		viewport.x = 0;
-		viewport.y = 0;
+		VkViewport opacityMapViewport;
+		opacityMapViewport.height = SHADOWMAP_HEIGHT;
+		opacityMapViewport.width = SHADOWMAP_WIDTH;
+		opacityMapViewport.minDepth = 0.0f;
+		opacityMapViewport.maxDepth = 1.0f;
+		opacityMapViewport.x = 0;
+		opacityMapViewport.y = 0;
 
-		vkCmdSetViewport(commandBuffers[i], 0, 1, &viewport);
+		vkCmdSetViewport(commandBuffers[i], 0, 1, &opacityMapViewport);
 
-		VkRect2D scissor;
-		scissor.extent.width = SHADOWMAP_WIDTH;
-		scissor.extent.height = SHADOWMAP_HEIGHT;
-		scissor.offset.x = 0;
-		scissor.offset.y = 0;
+		VkRect2D opacityMapScissor;
+		opacityMapScissor.extent.width = SHADOWMAP_WIDTH;
+		opacityMapScissor.extent.height = SHADOWMAP_HEIGHT;
+		opacityMapScissor.offset.x = 0;
+		opacityMapScissor.offset.y = 0;
 
-		vkCmdSetScissor(commandBuffers[i], 0, 1, &scissor);
+		vkCmdSetScissor(commandBuffers[i], 0, 1, &opacityMapScissor);
 
 		const float depthBiasConstant = 1.25f;
 		const float depthBiasSlope = 1.75f;
@@ -1700,7 +2130,7 @@ void Renderer::RecordCommandBuffers() {
 			VkDeviceSize offsets[] = { 0 };
 			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
 
-			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, shadowMapPipelineLayout, 1, 1, &hairDescriptorSets[j], 0, nullptr);
+			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, shadowMapPipelineLayout, 1, 1, &opacityMapHairDescriptorSets[j], 0, nullptr);
 			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, shadowMapPipelineLayout, 2, 1, &shadowCameraDescriptorSet, 0, nullptr);
 
 			vkCmdDrawIndirect(commandBuffers[i], scene->GetHair()[j]->GetNumStrandsBuffer(), 1, 1, sizeof(StrandDrawIndirect));
@@ -1710,7 +2140,65 @@ void Renderer::RecordCommandBuffers() {
 
 		// apparently don't need any synchronization between render passes, done implicity via subpass dependencies
 
-        // Second pass: normal graphics and hair ----------------------------------------
+		// second pass: render deep opacity map ----------------------------------------
+		VkClearValue opacityMapClearValues[1];
+		shadowMapClearValues[0].depthStencil.depth = 1.0f;
+		shadowMapClearValues[0].depthStencil.stencil = 0;
+
+		VkRenderPassBeginInfo opacityMapRenderPassBeginInfo;
+		opacityMapRenderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		opacityMapRenderPassBeginInfo.pNext = NULL;
+		opacityMapRenderPassBeginInfo.renderPass = opacityMapRenderPass;
+		opacityMapRenderPassBeginInfo.framebuffer = opacityMapFramebuffer;
+		opacityMapRenderPassBeginInfo.renderArea.offset.x = 0;
+		opacityMapRenderPassBeginInfo.renderArea.offset.y = 0;
+		opacityMapRenderPassBeginInfo.renderArea.extent.width = SHADOWMAP_WIDTH;
+		opacityMapRenderPassBeginInfo.renderArea.extent.height = SHADOWMAP_HEIGHT;
+		opacityMapRenderPassBeginInfo.clearValueCount = 1;
+		opacityMapRenderPassBeginInfo.pClearValues = opacityMapClearValues;
+
+		vkCmdBeginRenderPass(commandBuffers[i], &opacityMapRenderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+		VkViewport shadowMapViewport;
+		shadowMapViewport.height = SHADOWMAP_HEIGHT;
+		shadowMapViewport.width = SHADOWMAP_WIDTH;
+		shadowMapViewport.minDepth = 0.0f;
+		shadowMapViewport.maxDepth = 1.0f;
+		shadowMapViewport.x = 0;
+		shadowMapViewport.y = 0;
+
+		vkCmdSetViewport(commandBuffers[i], 0, 1, &shadowMapViewport);
+
+		VkRect2D shadowMapScissor;
+		shadowMapScissor.extent.width = SHADOWMAP_WIDTH;
+		shadowMapScissor.extent.height = SHADOWMAP_HEIGHT;
+		shadowMapScissor.offset.x = 0;
+		shadowMapScissor.offset.y = 0;
+
+		vkCmdSetScissor(commandBuffers[i], 0, 1, &shadowMapScissor);
+
+		// Set depth bias, required to avoid shadow mapping artifacts
+		vkCmdSetDepthBias(commandBuffers[i], depthBiasConstant, 0.0f, depthBiasSlope);
+
+		vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, opacityMapPipelineLayout, 0, 1, &shadowCameraDescriptorSet, 0, nullptr);
+
+		vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, opacityMapPipeline);
+
+		for (uint32_t j = 0; j < scene->GetHair().size(); ++j) {
+			VkBuffer vertexBuffers[] = { scene->GetHair()[j]->GetStrandsBuffer() };
+			VkDeviceSize offsets[] = { 0 };
+			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
+
+			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, shadowMapPipelineLayout, 1, 1, &opacityMapHairDescriptorSets[j], 0, nullptr);
+			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, shadowMapPipelineLayout, 2, 1, &shadowCameraDescriptorSet, 0, nullptr);
+
+			vkCmdDrawIndirect(commandBuffers[i], scene->GetHair()[j]->GetNumStrandsBuffer(), 1, 1, sizeof(StrandDrawIndirect));
+		}
+
+		vkCmdEndRenderPass(commandBuffers[i]);
+
+
+        // third pass: normal graphics and hair ----------------------------------------
         VkRenderPassBeginInfo renderPassInfo = {};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = renderPass;
@@ -1736,6 +2224,8 @@ void Renderer::RecordCommandBuffers() {
             barriers[j].size = sizeof(StrandDrawIndirect);
         } 
 
+
+		// TODO: move barrier before first graphics pass?
 		vkCmdPipelineBarrier(commandBuffers[i], VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, 0, 0, nullptr, barriers.size(), barriers.data(), 0, nullptr);
 
         // Bind the camera descriptor set. This is set 0 in all pipelines so it will be inherited
@@ -1774,6 +2264,7 @@ void Renderer::RecordCommandBuffers() {
 
 			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, hairPipelineLayout, 1, 1, &hairDescriptorSets[j], 0, nullptr);
 			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, hairPipelineLayout, 2, 1, &shadowCameraDescriptorSet, 0, nullptr);
+			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, hairPipelineLayout, 3, 1, &opacityMapDescriptorSets[j], 0, nullptr);
 
 			vkCmdDrawIndirect(commandBuffers[i], scene->GetHair()[j]->GetNumStrandsBuffer(), 0, 1, sizeof(StrandDrawIndirect));
         }
@@ -1857,11 +2348,13 @@ Renderer::~Renderer() {
     vkFreeCommandBuffers(logicalDevice, computeCommandPool, 1, &computeCommandBuffer);
     
 	vkDestroyPipeline(logicalDevice, shadowMapPipeline, nullptr);
+	vkDestroyPipeline(logicalDevice, opacityMapPipeline, nullptr);
     vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
     vkDestroyPipeline(logicalDevice, hairPipeline, nullptr);
     vkDestroyPipeline(logicalDevice, computePipeline, nullptr);
 
     vkDestroyPipelineLayout(logicalDevice, shadowMapPipelineLayout, nullptr);
+    vkDestroyPipelineLayout(logicalDevice, opacityMapPipelineLayout, nullptr);
     vkDestroyPipelineLayout(logicalDevice, graphicsPipelineLayout, nullptr);
     vkDestroyPipelineLayout(logicalDevice, hairPipelineLayout, nullptr);
     vkDestroyPipelineLayout(logicalDevice, computePipelineLayout, nullptr);
@@ -1878,6 +2371,7 @@ Renderer::~Renderer() {
     vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
 
 	vkDestroyRenderPass(logicalDevice, shadowMapRenderPass, nullptr);
+	vkDestroyRenderPass(logicalDevice, opacityMapRenderPass, nullptr);
     vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
     DestroyFrameResources();
     DestroyShadowMapFrameResources();

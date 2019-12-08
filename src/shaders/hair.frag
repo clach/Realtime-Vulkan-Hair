@@ -8,6 +8,7 @@
 #define EPSILON 0.001
 
 layout(set = 1, binding = 1) uniform sampler2D depthSampler;
+layout(set = 3, binding = 0) uniform sampler2D opacitySampler;
 
 layout(location = 0) in vec2 in_uv;
 layout(location = 1) in vec3 in_u;
@@ -151,11 +152,10 @@ float N(float p, float phi) {
 float shadowCalculation(vec4 fragPosLightSpace) {
 	vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
 	projCoords.xy = projCoords.xy * 0.5 + 0.5;
+	float opacity = texture(depthSampler, projCoords.xy).r;
 	float closestDepth = texture(depthSampler, projCoords.xy).r;
 	float currentDepth = projCoords.z;
-	float shadow = currentDepth > closestDepth ? 1.0 : 0.0;
-	return shadow;
-	//return currentDepth;
+	return currentDepth > closestDepth ? 1.f : 0.f;
 }
 
 void main() {
@@ -168,7 +168,8 @@ void main() {
 	const float n = 1.55f; // index of refraction
 	const vec3 sigma_a = vec3(0.132, 0.212, 0.78); // absorption coeffcient
 	const float eccentricity = 0.85; // eccentricity: [0.85, 1]
-	const vec3 C = vec3(89, 38, 11) * over255;
+	//const vec3 C = vec3(216,192,120) * over255;
+	const vec3 C = vec3(213, 124, 40) * over255;
 	//const vec3 C = vec3(216,192,120) * over255;
 	const float roughness = 0.2;
 	const float shift = 0.005;
@@ -287,7 +288,7 @@ void main() {
 	// scattering function S
 	vec3 S_TT = (N_TT * M_TT_3) / (cosTheta_d * cosTheta_d); 
 	vec3 S_R = (N_R * M_R_3) / (cosTheta_d * cosTheta_d); 
-	vec3 S = (N_R * M_R_3 + N_TT * M_TT_3 + N_TRT * M_TRT_3) / (cosTheta_d * cosTheta_d); 
+	vec3 S = (N_R * M_R_3 + 0.5 * N_TT * M_TT_3 + 0.5 * N_TRT * M_TRT_3) / (cosTheta_d * cosTheta_d); 
 
 	// gradient color
 	vec3 c1 = vec3(171, 146, 99) * over255;
@@ -304,7 +305,34 @@ void main() {
 	vec3 test = (vec3(texture(depthSampler, in_uv)) - 0.75f) * 4.f;
 
 	float shadow = shadowCalculation(in_fragPosLightSpace);
+
+
+
+	vec3 projCoords = in_fragPosLightSpace.xyz / in_fragPosLightSpace.w;
+	projCoords.xy = projCoords.xy * 0.5 + 0.5;
+	float z0 = texture(depthSampler, projCoords.xy).r;
+	//z0 = texture(opacitySampler, projCoords.xy).a;
+	float currentDepth = projCoords.z;
+
+	const float d = 0.3;
+
+	float opacity = 0.f;
+	if (currentDepth >= z0 && currentDepth < z0 + d) {
+		opacity = texture(opacitySampler, projCoords.xy).r;
+	} else if (currentDepth >= z0 + d && currentDepth < z0 + 2.f * d) {
+		opacity = texture(opacitySampler, projCoords.xy).g;
+	} else if (currentDepth >= z0 + 2.f * d) { 
+		opacity = texture(opacitySampler, projCoords.xy).b;
+	}
+
+	vec3 fakeNormal = normalize(w_o - in_u * dot(in_u, w_o));
+	float luma = 0.3f;
+	vec3 Cexp = vec3(pow(C.r / luma, 1.f - opacity), pow(C.g / luma, 1.f - opacity), pow(C.b / luma, 1.f - opacity));
+	vec3 S_multi = sqrt(C) * ((dot(fakeNormal, w_i) + 1.f) / (4.f * PI)) * Cexp;
+
+	// TODO: lol maybe just use regular shadows
 	vec3 colorTest = vec3(shadow);
 
-	outColor = vec4(S * (1.f - shadow), 1.0);
+	//outColor = vec4(S * (1.f - opacity), 1.0);
+	outColor = vec4((S + S_multi) * vec3(1.f - shadow), 1.0);
 }

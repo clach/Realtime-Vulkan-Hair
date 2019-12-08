@@ -17,11 +17,13 @@ public:
 
     void CreateRenderPass();
 	void CreateShadowMapRenderPass();
+	void CreateOpacityMapRenderPass();
 
     void CreateCameraDescriptorSetLayout();
     void CreateModelMatrixDescriptorSetLayout();
     void CreateTextureDescriptorSetLayout();
 	void CreateHairDescriptorSetLayout();
+	void CreateOpacityMapDescriptorSetLayout();
     void CreateTimeDescriptorSetLayout();
     void CreateCollidersDescriptorSetLayout();
 	void CreateGridDescriptorSetLayout();
@@ -34,19 +36,24 @@ public:
     void CreateTextureDescriptorSets();
     void CreateShadowCameraDescriptorSet();
     void CreateHairDescriptorSets();
+    void CreateOpacityMapDescriptorSets();
+    void CreateOpacityMapHairDescriptorSets();
     void CreateTimeDescriptorSet();
     void CreateCollidersDescriptorSets();
 	void CreateGridDescriptorSets();
     void CreateComputeDescriptorSets();
 
 	void CreateShadowMapPipeline();
+	void CreateOpacityMapPipeline();
     void CreateGraphicsPipeline();
     void CreateHairPipeline();
     void CreateComputePipeline();
 
 	void CreateShadowMapFrameResources();
+	void CreateOpacityMapFrameResources();
     void CreateFrameResources();
 	void DestroyShadowMapFrameResources();
+	void DestroyOpacityMapFrameResources();
     void DestroyFrameResources();
     void RecreateFrameResources();
 
@@ -69,11 +76,13 @@ private:
 
     VkRenderPass renderPass;
     VkRenderPass shadowMapRenderPass;
+    VkRenderPass opacityMapRenderPass;
 
     VkDescriptorSetLayout cameraDescriptorSetLayout;
     VkDescriptorSetLayout modelMatrixDescriptorSetLayout;
     VkDescriptorSetLayout textureDescriptorSetLayout;
     VkDescriptorSetLayout hairDescriptorSetLayout;
+    VkDescriptorSetLayout opacityMapDescriptorSetLayout;
 	VkDescriptorSetLayout timeDescriptorSetLayout;
 	VkDescriptorSetLayout collidersDescriptorSetLayout;
 	VkDescriptorSetLayout gridDescriptorSetLayout;
@@ -85,8 +94,9 @@ private:
     std::vector<VkDescriptorSet> textureDescriptorSets;
     VkDescriptorSet shadowCameraDescriptorSet;
 	std::vector<VkDescriptorSet> hairDescriptorSets;
-
 	VkDescriptorSet modelDescriptorSet;
+	std::vector<VkDescriptorSet> opacityMapDescriptorSets;
+	std::vector<VkDescriptorSet> opacityMapHairDescriptorSets;
     VkDescriptorSet timeDescriptorSet;
 	VkDescriptorSet collidersDescriptorSets;
 	VkDescriptorSet gridDescriptorSets;
@@ -94,11 +104,13 @@ private:
 
     VkPipelineLayout graphicsPipelineLayout;
     VkPipelineLayout shadowMapPipelineLayout;
+    VkPipelineLayout opacityMapPipelineLayout;
     VkPipelineLayout hairPipelineLayout;
     VkPipelineLayout computePipelineLayout;
 
     VkPipeline graphicsPipeline;
     VkPipeline shadowMapPipeline;
+    VkPipeline opacityMapPipeline;
     VkPipeline hairPipeline;
     VkPipeline computePipeline;
 
@@ -113,6 +125,12 @@ private:
 	VkImageView shadowMapImageView;
 	VkFramebuffer shadowMapFramebuffer;
 	VkSampler shadowMapSampler;
+
+	VkImage opacityMapImage;
+	VkDeviceMemory opacityMapImageMemory;
+	VkImageView opacityMapImageView;
+	VkFramebuffer opacityMapFramebuffer;
+	VkSampler opacityMapSampler;
 
     std::vector<VkCommandBuffer> commandBuffers;
     VkCommandBuffer computeCommandBuffer;
