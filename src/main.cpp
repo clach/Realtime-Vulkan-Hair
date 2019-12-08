@@ -129,7 +129,7 @@ namespace {
 
 
 void moveSphere(VkCommandPool commandPool) {
-	float delta = 0.0008;
+	float delta = 0.005;
 	glm::vec3 translation(0.0);
 	if (WDown) {
 		translation += glm::vec3(0.0, delta, 0.0);
@@ -225,30 +225,20 @@ int main() {
 	Hair* hair = new Hair(device, transferCommandPool, "models/mannequin_segment2.obj");
 
 	// trans, rot, scale
-	Collider testCollider = Collider(glm::vec3(2.0, 0.0, 1.0), glm::vec3(0.0), glm::vec3(1.0));
-	//Collider headCollider = Collider(glm::vec3(0.0, 2.64, 0.08), glm::vec3(-38.270, 0.0, 0.0), glm::vec3(0.844, 1.195, 1.05));
+	Collider sphereCollider = Collider(glm::vec3(2.0, 0.0, 1.0), glm::vec3(0.0), glm::vec3(1.0));
+	//Collider faceCollider = Collider(glm::vec3(0.0, 2.511, 0.915), glm::vec3(0, 0.0, 0.0), glm::vec3(0.561, 0.749, 0.615));
 	Collider headCollider = Collider(glm::vec3(0.0, 2.64, 0.08), glm::vec3(-38.270, 0.0, 0.0), glm::vec3(0.817, 1.158, 1.01));
 	Collider neckCollider = Collider(glm::vec3(0.0, 1.35, -0.288), glm::vec3(18.301, 0.0, 0.0), glm::vec3(0.457, 1.0, 0.538));
 	Collider bustCollider = Collider(glm::vec3(0.0, -0.380, -0.116), glm::vec3(-17.260, 0.0, 0.0), glm::vec3(1.078, 1.683, 0.974));
 	Collider shoulderRCollider = Collider(glm::vec3(-0.698, 0.087, -0.36), glm::vec3(-20.254, 13.144, 34.5), glm::vec3(0.721, 1.0, 0.724));
 	Collider shoulderLCollider = Collider(glm::vec3(0.698, 0.087, -0.36), glm::vec3(-20.254, 13.144, -34.5), glm::vec3(0.721, 1.0, 0.724));
 
-	std::vector<Collider> colliders = { testCollider, headCollider, neckCollider, bustCollider, shoulderRCollider, shoulderLCollider };
+	std::vector<Collider> colliders = { sphereCollider, /*faceCollider,*/ headCollider, neckCollider, bustCollider, shoulderRCollider, shoulderLCollider };
 
 	std::vector<Model*> models = {collisionSphere, mannequin};
 
     Scene* scene = new Scene(device, transferCommandPool, colliders, models);
-   /* scene->AddModel(collisionSphere);
-    scene->AddModel(mannequin);*/
     scene->AddHair(hair);
-	/*scene->AddCollider(testCollider);
-    scene->AddCollider(headCollider);
-    scene->AddCollider(neckCollider);
-    scene->AddCollider(bustCollider);
-    scene->AddCollider(shoulderRCollider);
-	scene->AddCollider(shoulderLCollider);*/
-
-	//scene->CreateCollidersBuffer(transferCommandPool);
 
 	vkDestroyCommandPool(device->GetVkDevice(), transferCommandPool, nullptr);
 
