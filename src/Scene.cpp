@@ -35,7 +35,7 @@ Scene::Scene(Device* device, VkCommandPool commandPool, std::vector<Collider> co
 	memcpy(mappedData2, this->colliders.data(), sizeof(Collider) * this->colliders.size());
 
 	this->grid = std::vector<GridCell>();
-	int d = 64;
+	int d = 128;
 	grid.resize(d * d * d, GridCell(glm::ivec3(0), 0));
 
 	BufferUtils::CreateBufferFromData(device, commandPool, grid.data(), grid.size() * sizeof(GridCell), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, gridBuffer, gridBufferMemory);

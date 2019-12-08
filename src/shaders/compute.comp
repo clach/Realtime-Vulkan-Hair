@@ -6,7 +6,7 @@
 #define EPSILON 0.00001
 #define DAMPING 1.0
 #define NUM_COLLIDERS 6
-#define GRID_DIM 64
+#define GRID_DIM 128
 #define GRID_HEIGHT 7
 #define SCALE 1000000.0
 
@@ -285,9 +285,47 @@ void main() {
 			}
 		}
 
+		int p0 = xmin + ymin * GRID_DIM + zmin * GRID_DIM * GRID_DIM;
+		int p1 = xmin + ymax * GRID_DIM + zmin * GRID_DIM * GRID_DIM;
+		int p2 = xmin + ymax * GRID_DIM + zmax * GRID_DIM * GRID_DIM;
+		int p3 = xmin + ymin * GRID_DIM + zmax * GRID_DIM * GRID_DIM;
+
+		int p4 = xmax + ymin * GRID_DIM + zmin * GRID_DIM * GRID_DIM;
+		int p5 = xmax + ymax * GRID_DIM + zmin * GRID_DIM * GRID_DIM;
+		int p6 = xmax + ymax * GRID_DIM + zmax * GRID_DIM * GRID_DIM;
+		int p7 = xmax + ymin * GRID_DIM + zmax * GRID_DIM * GRID_DIM;
+
+		float xGrad1 = (1.0 / float(SCALE)) * (float(grid.cells[p4].density) - float(grid.cells[p0].density));
+		float xGrad2 = (1.0 / float(SCALE)) * (float(grid.cells[p5].density) - float(grid.cells[p1].density));
+		float xGrad3 = (1.0 / float(SCALE)) * (float(grid.cells[p6].density) - float(grid.cells[p2].density));
+		float xGrad4 = (1.0 / float(SCALE)) * (float(grid.cells[p7].density) - float(grid.cells[p3].density));
+		float xGrad = (xGrad1 + xGrad1 + xGrad3 + xGrad4) / 4.0;
+
+		float yGrad1 = (1.0 / float(SCALE)) * (float(grid.cells[p1].density) - float(grid.cells[p0].density));
+		float yGrad2 = (1.0 / float(SCALE)) * (float(grid.cells[p2].density) - float(grid.cells[p3].density));
+		float yGrad3 = (1.0 / float(SCALE)) * (float(grid.cells[p5].density) - float(grid.cells[p4].density));
+		float yGrad4 = (1.0 / float(SCALE)) * (float(grid.cells[p6].density) - float(grid.cells[p7].density));
+		float yGrad = (yGrad1 + yGrad1 + yGrad3 + yGrad4) / 4.0;
+		
+		float zGrad1 = (1.0 / float(SCALE)) * (float(grid.cells[p2].density) - float(grid.cells[p1].density));
+		float zGrad2 = (1.0 / float(SCALE)) * (float(grid.cells[p3].density) - float(grid.cells[p0].density));
+		float zGrad3 = (1.0 / float(SCALE)) * (float(grid.cells[p6].density) - float(grid.cells[p5].density));
+		float zGrad4 = (1.0 / float(SCALE)) * (float(grid.cells[p7].density) - float(grid.cells[p4].density));
+		float zGrad = (zGrad1 + zGrad1 + zGrad3 + zGrad4) / 4.0;
+
+		vec3 gradient = normalize(vec3(xGrad, yGrad, zGrad));
+
+
+
 		// Mix previous velocity and grid velocity using friction
 		float friction = 0.08;
 		strand.curveVels[i] = vec4((1.0 - friction) * strand.curveVels[i].xyz + friction * gridVelocity, 0.0);	
+
+//		float repulsion = 0.0001;
+//		if (totalTime > 1.0) {
+//			strand.curveVels[i] += vec4(repulsion * gradient / deltaTime, 0.0);
+//		}
+//		strand.curveVels[i] = vec4(gradient, 0.0);
 	}
 
 	inStrands[threadIdx] = strand;
