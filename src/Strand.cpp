@@ -184,9 +184,9 @@ Hair::Hair(Device* device, VkCommandPool commandPool, std::string objFilename) :
 			currentStrand.curveVels[j] = glm::vec4(0.0, 0.0, -10.0, 0.0);
 			currentStrand.correctionVecs[j] = glm::vec4(0.0);
 			glm::vec3 dir = pointNormals[i];
-			dir[2] -= 2.0;
-			dir[1] += 5.0;
-			dir[0] += 0.05;
+			dir[2] -= 2.0f;
+			dir[1] += 5.0f;
+			dir[0] += 0.05f;
 			currPoint += (float)(length / (NUM_CURVE_POINTS - 1.0)) * dir;
 		}
 

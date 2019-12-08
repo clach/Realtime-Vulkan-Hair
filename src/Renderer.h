@@ -5,23 +5,28 @@
 #include "Scene.h"
 #include "Camera.h"
 
+const float SHADOW_MAP_WIDTH = 600;
+const float SHADOW_MAP_HEIGHT = 600;
+
 class Renderer {
 public:
     Renderer() = delete;
-    Renderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* camera);
+    Renderer(Device* device, SwapChain* swapChain, Scene* scene, Camera* camera, Camera* shadowCamera);
     ~Renderer();
 
 	Scene* scene;
 
-
     void CreateCommandPools();
 
     void CreateRenderPass();
+	void CreateShadowMapRenderPass();
+	void CreateOpacityMapRenderPass();
 
     void CreateCameraDescriptorSetLayout();
     void CreateModelMatrixDescriptorSetLayout();
     void CreateTextureDescriptorSetLayout();
 	void CreateHairDescriptorSetLayout();
+	void CreateOpacityMapDescriptorSetLayout();
     void CreateTimeDescriptorSetLayout();
     void CreateCollidersDescriptorSetLayout();
 	void CreateGridDescriptorSetLayout();
@@ -32,24 +37,33 @@ public:
     void CreateCameraDescriptorSet();
     void CreateModelDescriptorSet();
     void CreateTextureDescriptorSets();
+    void CreateShadowCameraDescriptorSet();
     void CreateHairDescriptorSets();
+    void CreateOpacityMapDescriptorSets();
+    void CreateOpacityMapHairDescriptorSets();
     void CreateTimeDescriptorSet();
     void CreateCollidersDescriptorSets();
 	void CreateGridDescriptorSets();
     void CreateComputeDescriptorSets();
 
+	void CreateShadowMapPipeline();
+	void CreateOpacityMapPipeline();
     void CreateGraphicsPipeline();
     void CreateHairPipeline();
     void CreateComputePipeline();
 
+	void CreateShadowMapFrameResources();
+	void CreateOpacityMapFrameResources();
     void CreateFrameResources();
+	void DestroyShadowMapFrameResources();
+	void DestroyOpacityMapFrameResources();
     void DestroyFrameResources();
     void RecreateFrameResources();
 
     void RecordCommandBuffers();
     void RecordComputeCommandBuffer();
 
-	//void UpdateShere();
+	//void UpdateSphere();
 
     void Frame();
 
@@ -58,16 +72,20 @@ private:
     VkDevice logicalDevice;
     SwapChain* swapChain;
     Camera* camera;
+    Camera* shadowCamera;
 
     VkCommandPool graphicsCommandPool;
     VkCommandPool computeCommandPool;
 
     VkRenderPass renderPass;
+    VkRenderPass shadowMapRenderPass;
+    VkRenderPass opacityMapRenderPass;
 
     VkDescriptorSetLayout cameraDescriptorSetLayout;
     VkDescriptorSetLayout modelMatrixDescriptorSetLayout;
     VkDescriptorSetLayout textureDescriptorSetLayout;
     VkDescriptorSetLayout hairDescriptorSetLayout;
+    VkDescriptorSetLayout opacityMapDescriptorSetLayout;
 	VkDescriptorSetLayout timeDescriptorSetLayout;
 	VkDescriptorSetLayout collidersDescriptorSetLayout;
 	VkDescriptorSetLayout gridDescriptorSetLayout;
@@ -77,19 +95,25 @@ private:
 
     VkDescriptorSet cameraDescriptorSet;
     std::vector<VkDescriptorSet> textureDescriptorSets;
+    VkDescriptorSet shadowCameraDescriptorSet;
 	std::vector<VkDescriptorSet> hairDescriptorSets;
-
 	VkDescriptorSet modelDescriptorSet;
+	std::vector<VkDescriptorSet> opacityMapDescriptorSets;
+	std::vector<VkDescriptorSet> opacityMapHairDescriptorSets;
     VkDescriptorSet timeDescriptorSet;
 	VkDescriptorSet collidersDescriptorSets;
 	VkDescriptorSet gridDescriptorSets;
 	std::vector<VkDescriptorSet> computeDescriptorSets;
 
     VkPipelineLayout graphicsPipelineLayout;
+    VkPipelineLayout shadowMapPipelineLayout;
+    VkPipelineLayout opacityMapPipelineLayout;
     VkPipelineLayout hairPipelineLayout;
     VkPipelineLayout computePipelineLayout;
 
     VkPipeline graphicsPipeline;
+    VkPipeline shadowMapPipeline;
+    VkPipeline opacityMapPipeline;
     VkPipeline hairPipeline;
     VkPipeline computePipeline;
 
@@ -98,6 +122,18 @@ private:
     VkDeviceMemory depthImageMemory;
     VkImageView depthImageView;
     std::vector<VkFramebuffer> framebuffers;
+
+	VkImage shadowMapImage;
+	VkDeviceMemory shadowMapImageMemory;
+	VkImageView shadowMapImageView;
+	VkFramebuffer shadowMapFramebuffer;
+	VkSampler shadowMapSampler;
+
+	VkImage opacityMapImage;
+	VkDeviceMemory opacityMapImageMemory;
+	VkImageView opacityMapImageView;
+	VkFramebuffer opacityMapFramebuffer;
+	VkSampler opacityMapSampler;
 
     std::vector<VkCommandBuffer> commandBuffers;
     VkCommandBuffer computeCommandBuffer;
