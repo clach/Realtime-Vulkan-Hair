@@ -47,20 +47,23 @@ void main() {
 	float width1 = scale * in_strandWidth[0];
 	float width2 = scale * in_strandWidth[1];
 
-	vec4 pos1 = vec4(camera.proj * camera.view * gl_in[0].gl_Position);
+	vec4 pos1 = camera.proj * camera.view * gl_in[0].gl_Position;
 	//gl_Position = gl_in[0].gl_Position + vec4(-width1, 0.0, 0.0, 0.0);
-	gl_Position = pos1 + vec4(-width1, 0.0, 0.0, 0.0);
+	vec4 newPos1_1 = pos1 + vec4(-width1, 0.0, 0.0, 0.0);
+	gl_Position = newPos1_1;
 	out_uv = in_uv[0];
 	out_u = in_u[0];
 	out_v = in_v[0];
 	out_w = in_w[0];
 	out_viewDir = normalize(in_viewDir[0]);
 	out_lightDir = in_lightDir[0];
-	out_fragPosLightSpace = shadowCamera.proj * shadowCamera.view * gl_in[0].gl_Position;
+	out_fragPosLightSpace = shadowCamera.proj * shadowCamera.view * inverse(camera.view) * inverse(camera.proj) * newPos1_1;
 	EmitVertex();
 
 	//gl_Position = gl_in[0].gl_Position + vec4(width1, 0.0, 0.0, 0.0);
-	gl_Position = pos1 + vec4(width1, 0.0, 0.0, 0.0);
+	//gl_Position = pos1 + vec4(width1, 0.0, 0.0, 0.0);
+	vec4 newPos1_2 = pos1 + vec4(width1, 0.0, 0.0, 0.0);
+	gl_Position = newPos1_2;
 	out_uv = in_uv[0];
 	out_u = in_u[0];
 	out_v = in_v[0];
@@ -68,13 +71,15 @@ void main() {
 	out_viewDir = normalize(in_viewDir[0]);
 	out_lightDir = in_lightDir[0];
 	//out_fragPosLightSpace = in_fragPosLightSpace[0];
-	out_fragPosLightSpace = shadowCamera.proj * shadowCamera.view * gl_in[0].gl_Position;
+	out_fragPosLightSpace = shadowCamera.proj * shadowCamera.view * inverse(camera.view) * inverse(camera.proj) * newPos1_2;
 	EmitVertex();
 
 
-	vec4 pos2 = vec4(camera.proj * camera.view * gl_in[1].gl_Position);
+	vec4 pos2 = camera.proj * camera.view * gl_in[1].gl_Position;
 	//gl_Position = gl_in[1].gl_Position + vec4(-width2, 0.0, 0.0, 0.0);
-	gl_Position = pos2 + vec4(-width2, 0.0, 0.0, 0.0);
+	//gl_Position = pos2 + vec4(-width2, 0.0, 0.0, 0.0);
+	vec4 newPos2_1 = pos2 + vec4(-width1, 0.0, 0.0, 0.0);
+	gl_Position = newPos2_1;
 	out_uv = in_uv[1];
 	out_u = in_u[1];
 	out_v = in_v[1];
@@ -82,11 +87,13 @@ void main() {
 	out_viewDir = normalize(in_viewDir[1]);
 	out_lightDir = in_lightDir[1];
 	//out_fragPosLightSpace = in_fragPosLightSpace[1];
-	out_fragPosLightSpace = shadowCamera.proj * shadowCamera.view * gl_in[0].gl_Position;
+	out_fragPosLightSpace = shadowCamera.proj * shadowCamera.view * inverse(camera.view) * inverse(camera.proj) * newPos2_1;
 	EmitVertex();
 
 	//gl_Position = gl_in[1].gl_Position + vec4(width2, 0.0, 0.0, 0.0);
-	gl_Position = pos2 + vec4(width2, 0.0, 0.0, 0.0);
+	//gl_Position = pos2 + vec4(width2, 0.0, 0.0, 0.0);
+	vec4 newPos2_2 = pos2 + vec4(width1, 0.0, 0.0, 0.0);
+	gl_Position = newPos2_2;
 	out_uv = in_uv[1];
 	out_u = in_u[1];
 	out_v = in_v[1];
@@ -94,7 +101,7 @@ void main() {
 	out_viewDir = normalize(in_viewDir[1]);
 	out_lightDir = in_lightDir[1];
 	//out_fragPosLightSpace = in_fragPosLightSpace[1];
-	out_fragPosLightSpace = shadowCamera.proj * shadowCamera.view * gl_in[0].gl_Position;
+	out_fragPosLightSpace = shadowCamera.proj * shadowCamera.view * inverse(camera.view) * inverse(camera.proj) * newPos2_2;
 	EmitVertex();
 
 	EndPrimitive();	

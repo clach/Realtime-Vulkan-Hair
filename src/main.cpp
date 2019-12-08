@@ -222,7 +222,7 @@ int main() {
 	Model* mannequin = new Model(device, transferCommandPool, vertices, indices, glm::scale(glm::vec3(0.98f)));
 	mannequin->SetTexture(mannequinDiffuseImage);
 
-	Hair* hair = new Hair(device, transferCommandPool, "models/mannequin_segment.obj");
+	Hair* hair = new Hair(device, transferCommandPool, "models/mannequin_segment2.obj");
 
 	// trans, rot, scale
 	Collider testCollider = Collider(glm::vec3(2.0, 0.0, 1.0), glm::vec3(0.0), glm::vec3(1.0));
