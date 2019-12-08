@@ -5,6 +5,9 @@
 #include "Scene.h"
 #include "Camera.h"
 
+const float SHADOW_MAP_WIDTH = 600;
+const float SHADOW_MAP_HEIGHT = 600;
+
 class Renderer {
 public:
     Renderer() = delete;

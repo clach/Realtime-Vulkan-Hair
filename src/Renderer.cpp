@@ -2244,7 +2244,7 @@ void Renderer::RecordCommandBuffers() {
 
             vkCmdBindIndexBuffer(commandBuffers[i], scene->GetModels()[j]->getIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-            // Bind the descriptor set for each model
+			// Bind the descriptor set for each model
             vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelineLayout, 1, 1, &textureDescriptorSets[j], 0, nullptr);
 
 			uint32_t dynamicOffset = j * this->scene->dynamicAlignment;
