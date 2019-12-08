@@ -2,6 +2,8 @@
 #include <iostream>
 #include "Strand.h"
 #include "BufferUtils.h"
+#define TINYOBJLOADER_IMPLEMENTATION 
+#include "tiny_obj_loader.h"
 #include <iostream>
 
 #include "ObjLoader.h"
@@ -20,41 +22,146 @@ int generateRandomInt(int min, int max) {
 }
 
 int GeneratePointsOnMesh(std::string filename, std::vector<glm::vec3>& points, std::vector<glm::vec3>& pointNormals) {
-	std::vector<Vertex> vertices;
-	std::vector<uint32_t> indices;
-	ObjLoader::LoadObj(filename, vertices, indices);
+	tinyobj::attrib_t attrib;
+	std::vector<tinyobj::shape_t> shapes;
+	std::vector<tinyobj::material_t> materials;
 
-	//for (int i = 0; i < 3; i++)
-	for (int i = 0; i < vertices.size(); i++)
-	{
-		// select vertex at random
-		//int v = generateRandomInt(0, vertices.size());
-		points.push_back(vertices[i].pos + 0.01f * vertices[i].nor);
-		pointNormals.push_back(vertices[i].nor);
+	std::string warn;
+	std::string err;
 
-		// select triangle at random
-		// TODO: account for differences in triangle area?
-		//int triangle = generateRandomInt(0, numTriangles);
-		//int index = 3 * triangle;
-		//glm::vec3 p1 = vertices[index].pos;
-		//glm::vec3 p2 = vertices[index + 1].pos;
-		//glm::vec3 p3 = vertices[index + 2].pos;
-		//glm::vec3 n = normals[index]; // just use same normal for each vertex of face, won't matter for simulation
+	// triangulate mesh = true
+	bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filename.c_str(), 0, true);
 
-		//float u = generateRandomFloat();
-		//float v = generateRandomFloat();
-		//if (u + v > 1) {
-		//	u = 1 - u;
-		//	v = 1 - v;
-		//}
-
-		//glm::vec3 newPos = p1 * u + p2 * v + p3 * (1 - u - v);
-		//points.push_back(newPos);
-		//pointNormals.push_back(n);
+	if (!warn.empty()) {
+		std::cout << warn << std::endl;
 	}
 
+	if (!err.empty()) {
+		std::cerr << err << std::endl;
+	}
+
+	if (!ret) {
+		exit(1);
+	}
+
+	std::vector<glm::vec3> positions;
+	std::vector<glm::vec3> normals;
+	std::vector<tinyobj::index_t> indices;
+	int numTriangles = 0;
+
+	// Loop over shapes
+	for (size_t s = 0; s < shapes.size(); s++) {
+
+		// Loop over faces(polygon)
+		size_t index_offset = 0;
+		for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
+			int fv = shapes[s].mesh.num_face_vertices[f];
+
+			// Loop over vertices in the face.
+			for (size_t v = 0; v < fv; v++) {
+				// access to vertex
+				tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
+				indices.push_back(idx);
+
+				tinyobj::real_t vx = attrib.vertices[3 * idx.vertex_index + 0];
+				tinyobj::real_t vy = attrib.vertices[3 * idx.vertex_index + 1];
+				tinyobj::real_t vz = attrib.vertices[3 * idx.vertex_index + 2];
+				positions.push_back(glm::vec3(vx, vy, vz));
+
+				tinyobj::real_t nx = attrib.normals[3 * idx.normal_index + 0];
+				tinyobj::real_t ny = attrib.normals[3 * idx.normal_index + 1];
+				tinyobj::real_t nz = attrib.normals[3 * idx.normal_index + 2];
+				normals.push_back(glm::vec3(nx, ny, nz));
+
+			}
+			index_offset += fv;
+
+			// per-face material
+			shapes[s].mesh.material_ids[f];
+
+			numTriangles++;
+		}
+	}
+
+	for (int i = 0; i < NUM_STRANDS; i++)
+	{
+		// select triangle at random
+		// TODO: account for differences in triangle area?
+		int triangle = generateRandomInt(0, numTriangles);
+		int index = 3 * triangle;
+		glm::vec3 p1 = positions[index];
+		glm::vec3 p2 = positions[index + 1];
+		glm::vec3 p3 = positions[index + 2];
+		glm::vec3 n = normals[index]; // just use same normal for each vertex of face, won't matter for simulation
+
+		float u = generateRandomFloat();
+		float v = generateRandomFloat();
+		if (u + v > 1) {
+			u = 1 - u;
+			v = 1 - v;
+		}
+
+		glm::vec3 newPos = p1 * u + p2 * v + p3 * (1 - u - v);
+		points.push_back(newPos);
+		pointNormals.push_back(n);
+	}
+
+//	std::vector<Vertex> vertices;
+//	std::vector<uint32_t> indices;
+//	int numTriangles = ObjLoader::LoadObj(filename, vertices, indices);
+//
+//	//for (int i = 0; i < 3; i++)
+////	for (int i = 0; i < vertices.size(); i++)
+////	{
+////		// select vertex at random
+////		//int v = generateRandomInt(0, vertices.size());
+////		/*points.push_back(vertices[i].pos + 0.01f * vertices[i].nor);
+////		pointNormals.push_back(vertices[i].nor);
+////*/
+////		// select triangle at random
+////		// TODO: account for differences in triangle area?
+////		//int triangle = generateRandomInt(0, numTriangles);
+////		//int index = 3 * triangle;
+////		//glm::vec3 p1 = vertices[index].pos;
+////		//glm::vec3 p2 = vertices[index + 1].pos;
+////		//glm::vec3 p3 = vertices[index + 2].pos;
+////		//glm::vec3 n = normals[index]; // just use same normal for each vertex of face, won't matter for simulation
+////
+////		//float u = generateRandomFloat();
+////		//float v = generateRandomFloat();
+////		//if (u + v > 1) {
+////		//	u = 1 - u;
+////		//	v = 1 - v;
+////		//}
+////
+////		//glm::vec3 newPos = p1 * u + p2 * v + p3 * (1 - u - v);
+////		//points.push_back(newPos);
+////		//pointNormals.push_back(n);
+////	}
+//	std::cout << numTriangles << std::endl;
+//
+//	for (int i = 0; i < NUM_STRANDS; ++i) {
+//		int triangle = generateRandomInt(0, 146);
+//		int index = 3 * triangle;
+//		glm::vec3 p1 = vertices[index].pos;
+//		glm::vec3 p2 = vertices[index + 1].pos;
+//		glm::vec3 p3 = vertices[index + 2].pos;
+//		glm::vec3 n = vertices[index].nor; // just use same normal for each vertex of face, won't matter for simulation
+//
+//		float u = generateRandomFloat();
+//		float v = generateRandomFloat();
+//		if (u + v > 1) {
+//			u = 1 - u;
+//			v = 1 - v;
+//		}
+//
+//		glm::vec3 newPos = p1 * u + p2 * v + p3 * (1 - u - v);
+//		points.push_back(newPos);
+//		pointNormals.push_back(n);
+	//}
+
 	//return 3;
-	return vertices.size();
+	return NUM_STRANDS;
 }
 
 

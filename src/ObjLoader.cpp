@@ -1,10 +1,10 @@
 #include "ObjLoader.h"
 #include <unordered_map>
 
-#define TINYOBJLOADER_IMPLEMENTATION 
+//#define TINYOBJLOADER_IMPLEMENTATION 
 #include "tiny_obj_loader.h"
 
-void ObjLoader::LoadObj(std::string filename, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices) {
+int ObjLoader::LoadObj(std::string filename, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices) {
 	vertices.clear();
 	indices.clear();
 
@@ -32,6 +32,7 @@ void ObjLoader::LoadObj(std::string filename, std::vector<Vertex>& vertices, std
 
 	std::unordered_map<Vertex, uint32_t> uniqueVertices;
 
+	int triangleCounter = 0;
 	// Loop over shapes
 	for (const auto& shape : shapes) {
 		for (const auto& index : shape.mesh.indices) {
@@ -54,5 +55,7 @@ void ObjLoader::LoadObj(std::string filename, std::vector<Vertex>& vertices, std
 			}
 			indices.push_back(uniqueVertices[v]);
 		}
+		triangleCounter += shape.mesh.num_face_vertices.size();
 	}
+	return triangleCounter;
 }

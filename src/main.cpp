@@ -128,7 +128,7 @@ namespace {
 
 
 void moveSphere(VkCommandPool commandPool) {
-	float delta = 0.0006;
+	float delta = 0.0008;
 	glm::vec3 translation(0.0);
 	if (WDown) {
 		translation += glm::vec3(0.0, delta, 0.0);

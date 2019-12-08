@@ -7,6 +7,6 @@
 class ObjLoader
 {
 public:
-	static void LoadObj(std::string filename, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices);
+	static int LoadObj(std::string filename, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices);
 };
 
