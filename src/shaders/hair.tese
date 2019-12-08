@@ -263,14 +263,6 @@ void main() {
 	// let width be a function of v with some randomness
 	// TODO: play with randomness, it's the same for each strand rn
 	float rand2 = abs(random(vec2(u, u * u)));
-	float dev = 0.f;
-	if (rand2 > 0.95) {
-		//dev = 0.9;
-	} else if (rand2 > 0.8) {
-		//dev = 0.5;
-	} else {
-		//dev = 0.1;
-	}
 	float width = (random(vec2(3.534 * u, u * 37.19817)) + 0.1) * 0.2 * exp(-pow(v - 0.5, 2.0) / (2.0 * pow(0.2, 2.0)));
 	const float clumpRadius = 0.5f;
 	width = clumpRadius * mix(0.3, 0.1, v) * (rand2 + 0.5);// add this for "curly" hair + random(vec2(u, v)) * 0.1;
@@ -293,17 +285,12 @@ void main() {
 	//hughesMoellerMethod(tangent, b_1, b_2);
 	frisvadONB(tangent1, b_1, b_2);
 
-//	tangent1 *= sd;
-//	b_1 *= sd;
-//	b_2 *= sd;
 	dir *= sd;
 
 
 	out_u = tangent1;
 	out_v = b_1;
 	out_w = b_2;
-
-
 
 	u1 = (u1 * 2.f) + 1.f;
 	u2 = (u2 * 2.f) + 1.f;

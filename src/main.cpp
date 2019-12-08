@@ -21,6 +21,7 @@ bool DDown = false;
 bool QDown = false;
 bool EDown = false;
 
+
 namespace {
     void resizeCallback(GLFWwindow* window, int width, int height) {
         if (width == 0 || height == 0) return;
@@ -150,8 +151,8 @@ void moveSphere(VkCommandPool commandPool) {
 	}
 
 	renderer->scene->translateSphere(translation);
-	//renderer->scene->GetModels().at(1)->translateModel(translation);
 }
+
 
 int main() {
     static constexpr char* applicationName = "Realtime Vulkan Hair";
@@ -205,8 +206,6 @@ int main() {
 		mannequinDiffuseImageMemory
 	);
 
-	// TODO: add capacity for multiple textures/normal maps/etc for a Model
-
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
 
@@ -219,11 +218,9 @@ int main() {
 	mannequin->SetTexture(mannequinDiffuseImage);
 
 	Hair* hair = new Hair(device, transferCommandPool, "models/mannequin_segment.obj");
-	//hair->SetTexture(mannequinDiffuseImage);
 
 	// trans, rot, scale
 	Collider testCollider = Collider(glm::vec3(2.0, 0.0, 1.0), glm::vec3(0.0), glm::vec3(1.0));
-	//Collider headCollider = Collider(glm::vec3(0.0, 2.64, 0.08), glm::vec3(-38.270, 0.0, 0.0), glm::vec3(0.844, 1.195, 1.05));
 	Collider headCollider = Collider(glm::vec3(0.0, 2.64, 0.08), glm::vec3(-38.270, 0.0, 0.0), glm::vec3(0.817, 1.158, 1.01));
 	Collider neckCollider = Collider(glm::vec3(0.0, 1.35, -0.288), glm::vec3(18.301, 0.0, 0.0), glm::vec3(0.457, 1.0, 0.538));
 	Collider bustCollider = Collider(glm::vec3(0.0, -0.380, -0.116), glm::vec3(-17.260, 0.0, 0.0), glm::vec3(1.078, 1.683, 0.974));
@@ -235,17 +232,7 @@ int main() {
 	std::vector<Model*> models = {collisionSphere, mannequin};
 
     Scene* scene = new Scene(device, transferCommandPool, colliders, models);
-   /* scene->AddModel(collisionSphere);
-    scene->AddModel(mannequin);*/
     scene->AddHair(hair);
-	/*scene->AddCollider(testCollider);
-    scene->AddCollider(headCollider);
-    scene->AddCollider(neckCollider);
-    scene->AddCollider(bustCollider);
-    scene->AddCollider(shoulderRCollider);
-	scene->AddCollider(shoulderLCollider);*/
-
-	//scene->CreateCollidersBuffer(transferCommandPool);
 
 	vkDestroyCommandPool(device->GetVkDevice(), transferCommandPool, nullptr);
 
@@ -261,7 +248,6 @@ int main() {
         scene->UpdateTime();
 		double previousTime = glfwGetTime();
 		moveSphere(transferCommandPool);
-		//renderer->UpdateShere();
 
         renderer->Frame();
 		double currentTime = glfwGetTime();

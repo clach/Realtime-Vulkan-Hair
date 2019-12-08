@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include <glm/glm.hpp>
@@ -8,6 +7,7 @@ struct CameraBufferObject {
   glm::mat4 viewMatrix;
   glm::mat4 projectionMatrix;
 };
+
 
 class Camera {
 private:

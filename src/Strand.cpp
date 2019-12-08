@@ -1,16 +1,17 @@
+#define TINYOBJLOADER_IMPLEMENTATION 
+
 #include <vector>
 #include <iostream>
 #include "Strand.h"
 #include "BufferUtils.h"
-#define TINYOBJLOADER_IMPLEMENTATION 
 #include "tiny_obj_loader.h"
 #include <iostream>
-
 #include "ObjLoader.h"
 
 float generateRandomFloat() {
     return rand() / (float)RAND_MAX;
 }
+
 
 // generates int in range [min, max)
 int generateRandomInt(int min, int max) {
@@ -20,6 +21,7 @@ int generateRandomInt(int min, int max) {
 	}
 	return rand() % scale;
 }
+
 
 int GeneratePointsOnMesh(std::string filename, std::vector<glm::vec3>& points, std::vector<glm::vec3>& pointNormals) {
 	tinyobj::attrib_t attrib;
@@ -138,29 +140,7 @@ int GeneratePointsOnMesh(std::string filename, std::vector<glm::vec3>& points, s
 ////		//points.push_back(newPos);
 ////		//pointNormals.push_back(n);
 ////	}
-//	std::cout << numTriangles << std::endl;
-//
-//	for (int i = 0; i < NUM_STRANDS; ++i) {
-//		int triangle = generateRandomInt(0, 146);
-//		int index = 3 * triangle;
-//		glm::vec3 p1 = vertices[index].pos;
-//		glm::vec3 p2 = vertices[index + 1].pos;
-//		glm::vec3 p3 = vertices[index + 2].pos;
-//		glm::vec3 n = vertices[index].nor; // just use same normal for each vertex of face, won't matter for simulation
-//
-//		float u = generateRandomFloat();
-//		float v = generateRandomFloat();
-//		if (u + v > 1) {
-//			u = 1 - u;
-//			v = 1 - v;
-//		}
-//
-//		glm::vec3 newPos = p1 * u + p2 * v + p3 * (1 - u - v);
-//		points.push_back(newPos);
-//		pointNormals.push_back(n);
 	//}
-
-	//return 3;
 	return NUM_STRANDS;
 }
 
@@ -175,13 +155,13 @@ Hair::Hair(Device* device, VkCommandPool commandPool, std::string objFilename) :
 
 	for (int i = 0; i < numStrands; i++) {
 		Strand currentStrand = Strand();
-		float length = MIN_LENGTH + (generateRandomFloat() * (MAX_LENGTH - MIN_LENGTH));
-		length = 2.0;
+		float length = 2.0;
 
+		// initialize curve point position, velocity and correction vector data
 		glm::vec3 currPoint = pointsOnMesh[i];
 		for (int j = 0; j < NUM_CURVE_POINTS; j++) {
 			currentStrand.curvePoints[j] = glm::vec4(currPoint, 1.0);
-			currentStrand.curveVels[j] = glm::vec4(0.0, 0.0, -10.0, 0.0);
+			currentStrand.curveVels[j] = glm::vec4(0.0, 0.0, -1.0, 0.0);
 			currentStrand.correctionVecs[j] = glm::vec4(0.0);
 			glm::vec3 dir = pointNormals[i];
 			dir[2] -= 2.0;
@@ -200,29 +180,35 @@ Hair::Hair(Device* device, VkCommandPool commandPool, std::string objFilename) :
 	indirectDraw.firstInstance = 0;
 
 	ModelBufferObject modelMatrix;
-	modelMatrix.modelMatrix = glm::mat4();
-	modelMatrix.invTransModelMatrix = glm::mat4();
+	modelMatrix.modelMatrix = glm::mat4(1.0);
+	modelMatrix.invTransModelMatrix = glm::mat4(1.0);
 
+	// Create buffers
 	BufferUtils::CreateBufferFromData(device, commandPool, strands.data(), numStrands * sizeof(Strand), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, strandsBuffer, strandsBufferMemory);
 	BufferUtils::CreateBufferFromData(device, commandPool, &indirectDraw, sizeof(StrandDrawIndirect), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, numStrandsBuffer, numStrandsBufferMemory);
 	BufferUtils::CreateBufferFromData(device, commandPool, &modelMatrix, sizeof(ModelBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, modelBuffer, modelBufferMemory);
 }
 
+
 VkBuffer Hair::GetStrandsBuffer() const {
     return strandsBuffer;
 }
+
 
 VkBuffer Hair::GetNumStrandsBuffer() const {
 	return numStrandsBuffer;
 }
 
+
 VkBuffer Hair::GetModelBuffer() const {
 	return modelBuffer;
 }
 
+
 int Hair::GetNumStrands() const {
 	return numStrands;
 }
+
 
 Hair::~Hair() {
     vkDestroyBuffer(device->GetVkDevice(), strandsBuffer, nullptr);

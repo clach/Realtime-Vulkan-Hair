@@ -18,6 +18,7 @@ struct Time {
     float totalTime = 0.0f;
 };
 
+
 // Collider is ellipsoid
 struct Collider {
 	glm::mat4 transform;
@@ -37,6 +38,7 @@ struct Collider {
 	}
 };
 
+
 struct GridCell {
 	glm::ivec3 velocity;
 	int density;
@@ -45,6 +47,7 @@ struct GridCell {
 		this->density = density;
 	}
 };
+
 
 class Scene {
 private:
@@ -63,14 +66,12 @@ private:
 	VkBuffer modelBuffer;
 	VkDeviceMemory modelBufferMemory;
 
-
     std::vector<Hair*> hair;
 
 	std::vector<Collider> colliders;
 	VkBuffer collidersBuffer;
 	VkDeviceMemory collidersBufferMemory;
 
-	//std::vector<glm::vec3> grid;
 	std::vector<GridCell> grid;
 	VkBuffer gridBuffer;
 	VkDeviceMemory gridBufferMemory;
@@ -87,7 +88,6 @@ public:
     const std::vector<Model*>& GetModels() const;
     const std::vector<Hair*>& GetHair() const;
     const std::vector<Collider>& GetColliders() const;
-	//const std::vector<glm::vec3>& GetGrid() const;
 	const std::vector<GridCell>& GetGrid() const;
 	const std::vector<ModelBufferObject>& GetModelMatrices() const;
     
@@ -95,15 +95,11 @@ public:
     void AddHair(Hair* hair);
     void AddCollider(Collider collider);
 
-	void translateSphere(glm::vec3 translation);
-	void clearGrid();
-
     VkBuffer GetTimeBuffer() const;
     VkBuffer GetCollidersBuffer() const;
 	VkBuffer GetGridBuffer() const;
 	VkBuffer GetModelBuffer() const;
 
-	//void CreateCollidersBuffer(VkCommandPool commandPool);
-
     void UpdateTime();
+	void translateSphere(glm::vec3 translation);
 };

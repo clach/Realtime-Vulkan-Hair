@@ -5,9 +5,11 @@ namespace {
     GLFWwindow* window = nullptr;
 }
 
+
 GLFWwindow* GetGLFWWindow() {
     return window;
 }
+
 
 void InitializeWindow(int width, int height, const char* name) {
     if (!glfwInit()) {
@@ -24,7 +26,6 @@ void InitializeWindow(int width, int height, const char* name) {
 
     window = glfwCreateWindow(width, height, name, nullptr, nullptr);
 
-
     if (!window) {
         fprintf(stderr, "Failed to initialize GLFW window\n");
         glfwTerminate();
@@ -32,9 +33,11 @@ void InitializeWindow(int width, int height, const char* name) {
     }
 }
 
+
 bool ShouldQuit() {
     return !!glfwWindowShouldClose(window);
 }
+
 
 void DestroyWindow() {
     glfwDestroyWindow(window);

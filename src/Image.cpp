@@ -44,6 +44,7 @@ void Image::Create(Device* device, uint32_t width, uint32_t height, VkFormat for
     vkBindImageMemory(device->GetVkDevice(), image, imageMemory, 0);
 }
 
+
 void Image::TransitionLayout(Device* device, VkCommandPool commandPool, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
     auto hasStencilComponent = [](VkFormat format) {
         return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
@@ -128,6 +129,7 @@ void Image::TransitionLayout(Device* device, VkCommandPool commandPool, VkImage 
     vkFreeCommandBuffers(device->GetVkDevice(), commandPool, 1, &commandBuffer);
 }
 
+
 VkImageView Image::CreateView(Device* device, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
     VkImageViewCreateInfo viewInfo = {};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -149,6 +151,7 @@ VkImageView Image::CreateView(Device* device, VkImage image, VkFormat format, Vk
 
     return imageView;
 }
+
 
 void Image::CopyFromBuffer(Device* device, VkCommandPool commandPool, VkBuffer buffer, VkImage& image, uint32_t width, uint32_t height) {
     // Specify which part of the buffer is going to be copied to which part of the image
@@ -193,6 +196,7 @@ void Image::CopyFromBuffer(Device* device, VkCommandPool commandPool, VkBuffer b
     vkQueueWaitIdle(device->GetQueue(QueueFlags::Transfer));
     vkFreeCommandBuffers(device->GetVkDevice(), commandPool, 1, &commandBuffer);
 }
+
 
 void Image::FromFile(Device* device, VkCommandPool commandPool, const char* path, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkImageLayout layout, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) {
     int texWidth, texHeight, texChannels;

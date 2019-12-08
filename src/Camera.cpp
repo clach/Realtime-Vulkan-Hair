@@ -1,12 +1,11 @@
 #include <iostream>
-
 #define GLM_FORCE_RADIANS
 // Use Vulkan depth range of 0.0 to 1.0 instead of OpenGL
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/gtc/matrix_transform.hpp>
-
 #include "Camera.h"
 #include "BufferUtils.h"
+
 
 Camera::Camera(Device* device, float aspectRatio) : device(device) {
     r = 10.0f;
@@ -21,9 +20,11 @@ Camera::Camera(Device* device, float aspectRatio) : device(device) {
     memcpy(mappedData, &cameraBufferObject, sizeof(CameraBufferObject));
 }
 
+
 VkBuffer Camera::GetBuffer() const {
     return buffer;
 }
+
 
 void Camera::UpdateOrbit(float deltaX, float deltaY, float deltaZ) {
     theta += deltaX;
@@ -40,6 +41,7 @@ void Camera::UpdateOrbit(float deltaX, float deltaY, float deltaZ) {
 
     memcpy(mappedData, &cameraBufferObject, sizeof(CameraBufferObject));
 }
+
 
 Camera::~Camera() {
   vkUnmapMemory(device->GetVkDevice(), bufferMemory);

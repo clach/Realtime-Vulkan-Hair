@@ -31,6 +31,7 @@ void BufferUtils::CreateBuffer(Device* device, VkDeviceSize size, VkBufferUsageF
     vkBindBufferMemory(device->GetVkDevice(), buffer, bufferMemory, 0);
 }
 
+
 void BufferUtils::CopyBuffer(Device* device, VkCommandPool commandPool, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -62,6 +63,7 @@ void BufferUtils::CopyBuffer(Device* device, VkCommandPool commandPool, VkBuffer
     vkQueueWaitIdle(device->GetQueue(QueueFlags::Graphics));
     vkFreeCommandBuffers(device->GetVkDevice(), commandPool, 1, &commandBuffer);
 }
+
 
 void BufferUtils::CreateBufferFromData(Device* device, VkCommandPool commandPool, void* bufferData, VkDeviceSize bufferSize, VkBufferUsageFlags bufferUsage, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
     // Create the staging buffer

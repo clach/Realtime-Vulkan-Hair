@@ -13,7 +13,6 @@ public:
 
 	Scene* scene;
 
-
     void CreateCommandPools();
 
     void CreateRenderPass();
@@ -48,8 +47,6 @@ public:
 
     void RecordCommandBuffers();
     void RecordComputeCommandBuffer();
-
-	//void UpdateShere();
 
     void Frame();
 
