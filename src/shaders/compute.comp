@@ -44,7 +44,7 @@ layout(set = 3, binding = 0) buffer Grid {
 struct Strand {
     vec4 curvePoints[NUM_CURVE_POINTS];
 	vec4 curveVels[NUM_CURVE_POINTS];
-	vec4 correctionVecs[NUM_CURVE_POINTS];
+	vec3 correctionVecs[NUM_CURVE_POINTS];
 };
 
 layout(set = 4, binding = 0) buffer InStrands {
@@ -212,7 +212,7 @@ void main() {
 		if (length(strand.curveVels[i]) > 10.0) {
 			strand.curveVels[i] = normalize(strand.curveVels[i]) * 10.0;
 		}
-		strand.correctionVecs[i] = vec4(extraDamp * tempDamp * (newPos - predictedPos), 0.0);
+		strand.correctionVecs[i] = vec3(extraDamp * tempDamp * (newPos - predictedPos));
 	}
 
 	float h = float(GRID_HEIGHT) / float(GRID_DIM);

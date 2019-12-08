@@ -5,6 +5,7 @@
 #include "Model.h"
 #include "iostream"
 
+
 //constexpr static unsigned int NUM_STRANDS = 230;
 constexpr static unsigned int NUM_CURVE_POINTS = 10;
 constexpr static float MIN_LENGTH = 6.0f;
@@ -13,9 +14,9 @@ constexpr static float MAX_LENGTH = 8.0f;
 
 struct Strand {
 	// Attributes
-	glm::vec4 curvePoints[NUM_CURVE_POINTS];
-	glm::vec4 curveVels[NUM_CURVE_POINTS];
-	glm::vec4 correctionVecs[NUM_CURVE_POINTS];
+	alignas(16) glm::vec4 curvePoints[NUM_CURVE_POINTS];
+	alignas(16) glm::vec4 curveVels[NUM_CURVE_POINTS];
+	alignas(16) glm::vec3 correctionVecs[NUM_CURVE_POINTS];
 	//float len;
 
     static VkVertexInputBindingDescription getBindingDescription() {
@@ -33,20 +34,20 @@ struct Strand {
 			attributeDescriptions[i].binding = 0;
 			attributeDescriptions[i].location = i;
 			attributeDescriptions[i].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-			attributeDescriptions[i].offset = offsetof(Strand, curvePoints[i]);
+			attributeDescriptions[i].offset = i * sizeof(glm::vec4);
 		}
-		for (int i = NUM_CURVE_POINTS; i < 2 * NUM_CURVE_POINTS; ++i) {
-			attributeDescriptions[i].binding = 0;
-			attributeDescriptions[i].location = i;
-			attributeDescriptions[i].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-			attributeDescriptions[i].offset = offsetof(Strand, curveVels[i - NUM_CURVE_POINTS]);
+		for (int i = 0; i < NUM_CURVE_POINTS; ++i) {
+			attributeDescriptions[i + NUM_CURVE_POINTS].binding = 0;
+			attributeDescriptions[i + NUM_CURVE_POINTS].location = i + NUM_CURVE_POINTS;
+			attributeDescriptions[i + NUM_CURVE_POINTS].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+			attributeDescriptions[i + NUM_CURVE_POINTS].offset = NUM_CURVE_POINTS * sizeof(glm::vec4) + i * sizeof(glm::vec4);
 		}
 
-		for (int i = 2 * NUM_CURVE_POINTS; i < 3 * NUM_CURVE_POINTS; ++i) {
-			attributeDescriptions[i].binding = 0;
-			attributeDescriptions[i].location = i;
-			attributeDescriptions[i].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-			attributeDescriptions[i].offset = offsetof(Strand, correctionVecs[i - 2 * NUM_CURVE_POINTS]);
+		for (int i = 0; i < NUM_CURVE_POINTS; ++i) {
+			attributeDescriptions[i + 2 * NUM_CURVE_POINTS].binding = 0;
+			attributeDescriptions[i + 2 * NUM_CURVE_POINTS].location = i + 2 * NUM_CURVE_POINTS;
+			attributeDescriptions[i + 2 * NUM_CURVE_POINTS].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+			attributeDescriptions[i + 2 * NUM_CURVE_POINTS].offset =  2 * NUM_CURVE_POINTS * sizeof(glm::vec4) + i * sizeof(glm::vec3);
 		}
 
 		/*attributeDescriptions[3 * NUM_CURVE_POINTS].binding = 0;
