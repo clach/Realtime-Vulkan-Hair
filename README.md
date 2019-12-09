@@ -117,7 +117,11 @@ This velocity from grid value represents a smoothed out velocity among the nearb
 Friction = 0.05
 velocity = (1 - friction) * velocity + friction * velocityFromGrid
 ```
-This grid transfer process causes nearby strands of hair to move with more similar velocities. This mimics friction, as if two strands collide, they will stick together a little bit, meaning their velocities align. This friction causes natural hair clumping, as nearby strands tend to try to move together. 
+This grid transfer process causes nearby strands of hair to move with more similar velocities. This mimics friction, as if two strands collide, they will stick together a little bit, meaning their velocities align. This friction causes natural hair clumping, as nearby strands tend to try to move together. You can also notice the friction as the hair falls on itself, cascading down slowly as it falls against other strands. This falling friction can be seen in the following two examples:
+
+Side            |  Back         
+:-------------------------:|:-------------------------:
+![](images/hairFrictionSide.gif)| ![](images/hairFrictionBack.gif)
 
 The friction also creates some volume for the hair. If many strands are being pushed towards other still strands, the small velocities of the still strands will gradually transfer over to the strands being pushed towards them, slow those strands down. Because of this gradual slow down, rather than continuing to fall directly on top of the still strands, the moving strands will slow to a stop earlier, creating volume as they rest on top of the still strands. 
 
