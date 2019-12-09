@@ -282,7 +282,6 @@ int main() {
 		scene->UpdateTime();
 		renderer->Frame();
 		moveSphere(transferCommandPool);
-
     }
 
     vkDeviceWaitIdle(device->GetVkDevice());

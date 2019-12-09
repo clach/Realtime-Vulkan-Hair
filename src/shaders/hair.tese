@@ -277,6 +277,7 @@ void main() {
 //		sd = 4.8f * exp(-pow(v - 0.8, 2.0) / (2.0 * pow(0.2, 2.0))); // Lower Gaussian
 //		sd = 6.f * pow(v, 1.3); // Gradual exponential
 // }
+
 	if (v == 0.0) {
 		sd = 1.0;
 	}
