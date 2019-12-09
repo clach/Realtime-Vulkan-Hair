@@ -29,7 +29,7 @@ We created a real-time hair simulation using Vulkan. Our pipeline simulates phys
   - Mesh loading and rendering
   - Begin hair-hair collision
 - [Milestone 3](presentations/Milestone3.pdf)
-  - Extended isolines into triangles with geometry shader
+  - Extend isolines into triangles with geometry shader
   - Begin single scattering rendering
   - Interactive collision sphere
 - Final
@@ -39,7 +39,8 @@ We created a real-time hair simulation using Vulkan. Our pipeline simulates phys
   - Multiple scattering
   - Random strand deviations
   - Multiple strand interpolation
-  - Polish
+  - Performance analysis
+  - Polish demo
   
 <p align="center">
   <img src="images/sphere1.gif">
@@ -76,14 +77,14 @@ Once we have the updated position of the point with the FTL constraint applied, 
 
 ![](images/CorrectedVelocityUpdate.PNG)
 
-In this equation, i refers is the point we are currently updating and i + 1 refers to the point below it, farther from the root. d refers to the correction vector of the point, meaning the difference between its previous frame's position and its updated position. Because this velocity update requires correction vector of the point below, and we calculate position updates in order of root to tip, we perform this corrected velocity update after all points have had their position updated.
+In this equation, `i` refers is the point we are currently updating and `i + 1` refers to the point below it, farther from the root. `d` refers to the correction vector of the point, meaning the difference between its previous frame's position and its updated position. Because this velocity update requires correction vector of the point below, and we calculate position updates in order of root to tip, we perform this corrected velocity update after all points have had their position updated.
 
 The following gif demonstrates what the hair dynamics look like with this simulation model applied. There are no additional constraints or collisions.
 
 ![](images/Milestone1Demo.gif)
 
 ### Object Collision
-Our approach for object collision is to apply a penalty force upon collision, rather than a preventative technique. This means that our simulation allows strands to enter into the surface of the collision geometry, but as soon as it does, it will get pushed out in the next frame. By making the collision geometry slightly larger than the rendered geometry, the slight collision into the geometry is rarely noticeable. 
+Our approach for object collision is to apply a penalty force upon collision, rather than a preventative technique. This means that our simulation allows strands to enter into the surface of the collision geometry, but as soon as they do, they will get pushed out in the next frame. By making the collision geometry slightly larger than the rendered geometry, the slight collision into the geometry is rarely noticeable. 
 
 When updating the position of a point on the strand, we first check if it is inside one of the collision ellipsoids. If it is, we apply a zero-length spring force to push the point out of the surface. This force is added to the external forces with gravity and any other external forces. The zero-length spring force acts as if there is a very stiff spring such that any distance away from the center of the spring gets penalized. This spring acts along the normal of the surface of the geometry at the point of collision. The force added is the following:
 
@@ -91,11 +92,11 @@ When updating the position of a point on the strand, we first check if it is ins
 PenaltyForce = k * d * normal
 ```
 
-k represents the spring stiffness, which we set to be very large. d is the depth of the point within the collision object, penalizing deeper collisions more strongly. The normal is the normal of the surface of the ellipsoid at the collision point.
+`k` represents the spring stiffness, which we set to be very large. `d` is the depth of the point within the collision object, penalizing deeper collisions more strongly. The normal is the normal of the surface of the ellipsoid at the collision point.
 
-A benefit of this penalty based technique is that it is very simple to apply and is very efficient. It is simple because it just involves updated the force used to update position before applying any constraints.  It is efficient because it does not require multiple iterations of constraint applications. If instead we were to apply collisions as a second constraint, we would have to perform multiple iterations of the position update so that both the FTL constraint and collision constraint are sufficiently satisfied. This would slow down the simulation, making it less suitable for a real time model. 
+A benefit of this penalty based technique is that it is very simple to apply and is very efficient. It is simple because it just involves updating the force used to update position before applying any constraints.  It is efficient because it does not require multiple iterations of constraint applications. If instead we were to apply collisions as a second constraint, we would have to perform multiple iterations of the position update so that both the FTL constraint and collision constraint are sufficiently satisfied. This would slow down the simulation, making it less suitable for a real time model. 
 
-One downside of the penalty approach is that it is dependent on a small delta time. If there is too much time in between frames, the strands might travel fairly deep within a collision object. The penalty force to correct this collision could become very large, applying a strong force that could cause the simulation to explode and become unstable. However, out simulation is fast enough that the time between frames is low enough for penalty based collisions to work effectively.
+One downside of the penalty approach is that it is dependent on a small delta time. If there is too much time in between frames, the strands might travel fairly deep within a collision object. The penalty force to correct this collision could become very large, applying a strong force that could cause the simulation to explode and become unstable. However, our simulation is fast enough that the time between frames is low enough for penalty based collisions to work effectively.
 
 The following gif demonstrates hair-object collision:
 
@@ -134,7 +135,7 @@ For each of the 8 neighbor gridPoints:
   gridPointVelocity = gridPoint.velocity / gridPoint.density
   velocityFromGrid += totalWeight * gridPointVelocity
 ```
-This velocity from grid value represents a smoothed out velocity among the nearby strands of hair. We do not want to set the new velocity directly to this grid velocity, as this will exhibit too much friction and damping. Instead, we have a friction parameter, in our case approximate 0.05, and calculate the final velocity as a mix between the original and the one found on the grid:
+This velocity from grid value represents a smoothed out velocity among the nearby strands of hair. We do not want to set the new velocity directly to this grid velocity, as this will exhibit too much friction and damping. Instead, we have a friction parameter, in our case approximately 0.05, and calculate the final velocity as a mix between the original and the one found on the grid:
 ```
 Friction = 0.05
 velocity = (1 - friction) * velocity + friction * velocityFromGrid
@@ -182,7 +183,7 @@ The FPS exhibits a fairly exponential decrease as the divisions increase up unti
 ### Strand Interpolation
 #### Single Strand
 
-In single strand interpolation, one guide strand is tessellated to become multiple strands surrounding that strand. We tessellate the additional strands in a disc centered on the original strand by mapping the (0, 1) u tessellation coordinate to (0, 2pi) radians and using the angle to calculate a direction from the center. The magnitude of a specific point's direction from the original strand is based on its v tessellation coordinate (essentially a meausure of how far from the root a point is), to create a tapering effect at both the root and the tip. This creates an effect of clumping hairs:
+In single strand interpolation, one guide strand is tessellated to become multiple strands surrounding that strand. We tessellate the additional strands in a disc centered on the original strand by mapping the (0, 1) `u` tessellation coordinate to (0, 2pi) radians and using the angle to calculate a direction from the center. The magnitude of a specific point's direction from the original strand is based on its `v` tessellation coordinate (essentially a meausure of how far from the root a point is), to create a slight tapering effect at both the root and the tip. This creates an effect of clumping hairs:
 
 ![](images/singlestrandtess.gif)
 
@@ -198,11 +199,9 @@ The chart below shows the affect of the number of interpolated strands per guide
 The FPS exhibits a steady exponential falloff as we interpolate more strands for each guide strand, but again, always remains fast enough for real-time for any reasonable number of interpolated strands.
 
 #### Random Strand Deviation
-With just single strand and multiple strand interpolation alone, the hair has a very uniform, neat appearance. Realistically, however, individual strands of hair can deviate from the nearby hairs. To achieve this effect, when tessellating strands to duplicate the guide strands, we probabilistically choose to deviate the strands from their guide strand. 
+With just single strand interpolation alone, the hair has a very uniform, neat appearance. Realistically, however, individual strands of hair can deviate from the nearby hairs. To achieve this effect, when tessellating strands to duplicate the guide strands, we probabilistically choose to deviate the strands from their guide strand. 
 
-With a probability of 0.5, a strand has some deviation. To get this probability, we choose use a deterministic random function to get a random number between 0 and 1 dependent on the guide strand position and the tessellation value that differentiates individual strands that are interpolated off of the guide strand. This gives each rendered strand a unique random number. If this random number is above 0.5, we apply a deviation. 
-
-If a tessellation point on a hair is deviated, the distance that it gets pushed away from the guide strand is scaled up. This scale does not have to apply to the entire strand, but can vary along the length of the strand, so part of the strand can be more aligned with the guide hair, and other can be deviated to be further away.
+We choose use a deterministic random function to get a random number between 0 and 1 dependent on the guide strand position and the tessellation coordinate `u`. If this random number is above 0.5, we apply a deviation. If a tessellation point on a hair is deviated, we scale its distance from its parent guide strand; these distances can vary along the length of the strand.
 
 There are 5 distributions of deviation, each occuring with equal probability. Some deviations use a gaussian curve to adjust the tessellated strands. One gaussian curve is centered close to the root of the hair, causing stray, deviated hairs at the top of the head. Two other guassian curves cause more deviations towards the bottome of the strands, each with different scales of deviation. Other deviations follow an exponential curve based on the distance along the strand. One exponential deviation very sharply increases towards the tip of the hair, causing flyaway bits at the tips. Another exponential strand is a much more gradual exponential increase, causing almost the whole strand to be deviated.
 
@@ -220,11 +219,11 @@ Our method for strand deviation is based off of Markus Rapp's master's thesis, [
 
 ### Geometry Shader
 
-The output of our tessellation pipeline is isolines, which are simply 2D line segments. Because these strands are very thin, they can somtimes take up less the width of a pixel, resulting in aliasing issues. We used the geometry shader to expand our isolines into camera facing quads, allowing us to control the width of the strands depending the distance to the camera.
+The output of our tessellation pipeline is isolines, which are simply 2D line segments. Because these strands are very thin, they can somtimes take up less than the width of a pixel, resulting in aliasing issues. We used the geometry shader to expand our isolines into camera facing quads, allowing us to control the width of the strands depending the distance to the camera.
 
 ## Rendering
 
-Rendering hair properly is not a trivial task. We identified three important components to a good hair renderer: single scattering, shadowing, and multiple scattering. 
+Rendering hair properly is not a trivial task. Rather than a surface, hair is thin curve. Additionally, the strands are anisotropic, while the whole head of hair is volumetric. We identified three important components to a good hair renderer: single scattering, shadowing, and multiple scattering. 
 
 ### Single Scattering
 
@@ -246,7 +245,7 @@ In this gif, you can see the transition from primary and secondary reflection to
 
 ![](images/movinglight.gif)
 
-Below is another example of backscattering on auburn hair:
+Below is another example of backscattering on auburn-colored hair:
 
 ![](images/backscattering_auburn2.PNG)
 
@@ -293,7 +292,7 @@ The full scattering model, including single scattering, multiple scattering, sha
 
 One important feature that would greatly improve the look of our project is anti-aliasing, such as MSAAx4. This would help reduce a lot of the noise created by the very thin hair strands.
 
-If given more time, we also would like to add on onscreen GUI, perhaps by using Dear Imgui. This would allow for more art directability, including controlling hair color, length, thickness, wind direction, etc.
+If given more time, we also would like to add an onscreen GUI, perhaps such as Dear Imgui. This would allow for more art directability, including controlling hair color, length, thickness, wind direction, etc.
 
 Lastly, we would have liked to have explored styling hair, such as playing with length or recreating specific hair styles.
 
@@ -320,5 +319,5 @@ We          | had          | some  | issues...
 :-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
 ![](images/Bloopers/b1.gif)| ![](images/Bloopers/b1.PNG) |![](images/Bloopers/b2.gif) |![](images/Bloopers/b2.PNG)
 ![](images/Bloopers/b3.gif)| ![](images/Bloopers/b3.PNG) |![](images/Bloopers/b4.gif) |![](images/Bloopers/b4.PNG)
-![](images/Bloopers/b5.PNG)| ![](images/Bloopers/cruella.PNG) |![](images/Bloopers/b7.PNG) |![](images/Bloopers/HairBlooper.PNG)
+![](images/Bloopers/b5.PNG)| ![](images/Bloopers/b8.PNG) |![](images/Bloopers/b7.PNG) |![](images/Bloopers/HairBlooper.PNG)
 
