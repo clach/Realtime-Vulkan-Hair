@@ -44,7 +44,9 @@ We created a real-time hair simulation using Vulkan. Our pipeline simulates phys
 <p align="center">
   <img src="images/sphere1.gif">
 </p>  
+
 # Implementation
+
 ## Overview
 We start by placing guide hairs on the surface of the head geometry, using a straightforward mesh sampling technique. Each strand is a string of individual points, called curve points. In a compute shader, we simulate physics on the points of these guide strands. Then in the graphics pipeline, we tessellate the input points of the strands. First we connect the strand curve points using Bezier interpolation between the points, to create a smooth, curved strand of hair. Next, also in the tessellation stage, we duplicate the guide strands to add density to the hair using single strand tessellation. The output of the tessellation process is isolines, or line segments. The strands are then passed through a geometry shader, which converts the isolines into camera-facing triangles, allowing us to control the width of the strands. Finally, shading and lighting are applied in the fragment shader using a shadow map and deep opacity map generated in two preceeding render passes, and the hair is rendered to screen.
 
