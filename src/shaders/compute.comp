@@ -4,7 +4,7 @@
 #define WORKGROUP_SIZE 32
 #define NUM_CURVE_POINTS 10
 #define EPSILON 0.00001
-#define DAMPING 0.999
+#define DAMPING 0.998
 #define NUM_COLLIDERS 6
 #define GRID_DIM 64
 #define GRID_HEIGHT 7
