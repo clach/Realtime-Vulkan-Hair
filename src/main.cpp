@@ -216,7 +216,7 @@ int main() {
 	std::vector<uint32_t> indices;
 
 	ObjLoader::LoadObj("models/collisionTest.obj", vertices, indices);
-	Model* collisionSphere = new Model(device, transferCommandPool, vertices, indices, glm::scale(glm::vec3(0.5f)));
+	Model* collisionSphere = new Model(device, transferCommandPool, vertices, indices, glm::scale(glm::vec3(0.98f)));
 	collisionSphere->SetTexture(mannequinDiffuseImage);
 
 	ObjLoader::LoadObj("models/mannequin.obj", vertices, indices);
@@ -281,6 +281,7 @@ int main() {
 
 		scene->UpdateTime();
 		renderer->Frame();
+		moveSphere(transferCommandPool);
     }
 
     vkDeviceWaitIdle(device->GetVkDevice());
