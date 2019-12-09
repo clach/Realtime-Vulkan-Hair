@@ -1,4 +1,5 @@
 #include <vulkan/vulkan.h>
+#include <sstream>
 #include "Instance.h"
 #include "Window.h"
 #include "Renderer.h"
@@ -215,7 +216,7 @@ int main() {
 	std::vector<uint32_t> indices;
 
 	ObjLoader::LoadObj("models/collisionTest.obj", vertices, indices);
-	Model* collisionSphere = new Model(device, transferCommandPool, vertices, indices, glm::scale(glm::vec3(0.98f)));
+	Model* collisionSphere = new Model(device, transferCommandPool, vertices, indices, glm::scale(glm::vec3(0.5f)));
 	collisionSphere->SetTexture(mannequinDiffuseImage);
 
 	ObjLoader::LoadObj("models/mannequin.obj", vertices, indices);
@@ -235,7 +236,7 @@ int main() {
 
 	std::vector<Collider> colliders = { sphereCollider, /*faceCollider,*/ headCollider, neckCollider, bustCollider, shoulderRCollider, shoulderLCollider };
 
-	std::vector<Model*> models = {collisionSphere, mannequin};
+	std::vector<Model*> models = { collisionSphere, mannequin };
 
     Scene* scene = new Scene(device, transferCommandPool, colliders, models);
     scene->AddHair(hair);
@@ -249,15 +250,37 @@ int main() {
     glfwSetCursorPosCallback(GetGLFWWindow(), mouseMoveCallback);
 	glfwSetKeyCallback(GetGLFWWindow(), keyPressCallback);
 
+	double fps = 0;
+	double timebase = 0;
+	int frame = 0;
+
     while (!ShouldQuit()) {
         glfwPollEvents();
-        scene->UpdateTime();
+       /* scene->UpdateTime();
 		double previousTime = glfwGetTime();
 		moveSphere(transferCommandPool);
 
         renderer->Frame();
-		double currentTime = glfwGetTime();
-		//std::cout << currentTime - previousTime << std::endl;
+		double currentTime = glfwGetTime();*/
+
+		frame++;
+		double time = glfwGetTime();
+
+		if (time - timebase > 1.0) {
+			fps = frame / (time - timebase);
+			timebase = time;
+			frame = 0;
+		}
+
+		std::ostringstream ss;
+		ss << "[";
+		ss.precision(1);
+		ss << std::fixed << fps;
+		ss << " fps] ";
+		glfwSetWindowTitle(GetGLFWWindow(), ss.str().c_str());
+
+		scene->UpdateTime();
+		renderer->Frame();
     }
 
     vkDeviceWaitIdle(device->GetVkDevice());

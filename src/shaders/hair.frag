@@ -6,6 +6,7 @@
 #define RAD_TO_DEG 57.2957795131
 #define DEG_TO_RAD 0.01745329251
 #define EPSILON 0.001
+#define PCF_SIZE 4
 
 layout(set = 1, binding = 1) uniform sampler2D depthSampler;
 layout(set = 3, binding = 0) uniform sampler2D opacitySampler;
@@ -104,10 +105,8 @@ float PCFshadowCalculation(vec4 fragPosLightSpace) {
 	projCoords.xy = projCoords.xy * 0.5 + 0.5;
 	float currentDepth = projCoords.z;
 
-	int pcfSize = 4;
-	int pcfSizeMinus1 = int(pcfSize - 1);
+	int pcfSizeMinus1 = int(PCF_SIZE - 1);
 	float kernelSize = 2.f * pcfSizeMinus1 + 1.f;
-	float numSamples = kernelSize * kernelSize;
 	
 	float lightedCount = 0.f;
 	vec2 shadowMapSize = vec2(1080, 720);
@@ -121,10 +120,10 @@ float PCFshadowCalculation(vec4 fragPosLightSpace) {
 			}
 		}
 	}
-	return lightedCount / numSamples;
-	//float closestDepth = texture(depthSampler, projCoords.xy).r;
-	//float currentDepth = projCoords.z;
-	//return currentDepth > closestDepth ? 0.f : 1.f;
+	return lightedCount / (kernelSize * kernelSize);
+
+//	float closestDepth = texture(depthSampler, projCoords.xy).r;
+//	return currentDepth > closestDepth ? 1.f : 0.f;
 }
 
 float random(vec2 st) {
@@ -145,7 +144,7 @@ void main() {
 	const vec3 blonde = vec3(216,192,120);
 	const vec3 auburn = vec3(176, 57, 0);
 	const vec3 midBrown = vec3(101, 67, 33);
-	vec3 C = midBrown * over255;
+	vec3 C = blonde * over255;
 	const float roughness = 0.2;
 	const float shift = 0.005;
 
@@ -257,5 +256,6 @@ void main() {
 	vec3 S_multi = sqrt(C) * ((dot(fakeNormal, w_i) + 1.f) / (4.f * PI)) * Cexp;
 
 	//outColor = vec4(S * (1.f - opacity), 1.0);
-	outColor = vec4(clamp(((S_single + S_multi) * (1.f - shadow) + 0.3 * C) * (0.8 * abs(random(vec2(in_uv.x, in_uv.x))) + 0.6), 0.f, 1.f), 1.f);
+	outColor = vec4(clamp(((S_single + S_multi) * (1.f - shadow) + 0.3 * C) * (0.8 * abs(random(vec2(in_uv.x, in_uv.x))) + 0.6), 0.f, 1.f), 0.75f);
+	//outColor = vec4(vec3(shadow), 0.75f);
 }
