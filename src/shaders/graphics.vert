@@ -11,6 +11,11 @@ layout(set = 2, binding = 0) uniform ModelBufferObject {
 	mat4 invTransModel;
 };
 
+layout(set = 3, binding = 0) uniform ShadowCameraBufferObject {
+    mat4 view;
+	mat4 proj;
+} shadowCamera;
+
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec3 inColor;
@@ -27,7 +32,9 @@ out gl_PerVertex {
 
 void main() {
 	vec3 modelPos = vec3(model * vec4(inPosition, 1.0));
-	vec3 lightPos = vec3(5.0);
+
+	mat4 invLightView = inverse(shadowCamera.view); // TODO: compute ahead of time?
+	vec3 lightPos = vec3(invLightView[3][0], invLightView[3][1], invLightView[3][2]);
     fragColor = inColor;
     fragTexCoord = inTexCoord;
 	fragNormal = vec3(invTransModel * vec4(inNormal, 0.0));

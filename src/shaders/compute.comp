@@ -136,7 +136,7 @@ void main() {
 	Strand strand = inStrands[threadIdx];
 	
 	// Temporarily hard codes radius between curve points
-	float strandLength = 2.0;
+	float strandLength = 2.f;
 	float radius = strandLength / (NUM_CURVE_POINTS - 1.0);
 
 	float dt = deltaTime * 1.0;

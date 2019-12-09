@@ -163,42 +163,6 @@ void main() {
 		return;
 	}
 
-
-	float sd = 1.0;
-	float division = 1.0 / float(NUM_CURVE_POINTS - 1);
-
-	vec3 currRoot = in_curvePoints[0][0].xyz;
-
-	float randomChoice = random(vec2(u, currRoot.x)) * random(vec2(currRoot.y, currRoot.z));
-
-	if (randomChoice > 0.5) {
-		float maxLength = 2.0;
-		int maxCV = int(floor(maxLength * float(NUM_CURVE_POINTS - 1))) + 2;
-		if (randomChoice > 0.9) {
-			sd = 1.7f * exp(-pow(v - 0.25, 2.0) / (2.0 * pow(0.2, 2.0)));
-		} else if (randomChoice > 0.8) {
-			sd = 4.5f * pow(v, 10.0);
-		} else if (randomChoice > 0.7) {
-			sd = 2.5f * exp(-pow(v - 0.7, 2.0) / (2.0 * pow(0.2, 2.0)));
-		} else if (randomChoice > 0.6) {
-			sd = 4.f * pow(v, 1.3);
-		} else {
-			sd = 1.8f * exp(-pow(v - 0.8, 2.0) / (2.0 * pow(0.2, 2.0)));
-		}
-	}
-	if (randomChoice > 0.7) {
-//		sd = 2.7f * exp(-pow(v - 0.25, 2.0) / (2.0 * pow(0.2, 2.0))); // Top Gaussian
-//		sd = 6.5f * pow(v, 10.0); // Sharp Exponential Tips
-//		sd = 4.8f * exp(-pow(v - 0.8, 2.0) / (2.0 * pow(0.2, 2.0))); // Lower Gaussian
-//		sd = 6.f * pow(v, 1.3); // Gradual exponential
-
-	}
-
-	if (v == 0.0) {
-		sd = 1.0;
-	}
-
-
 	// Get relevant curve points
 	//vec3 v0; // previous point before segment
 	//vec3 v1; // current segment's first point
@@ -274,19 +238,52 @@ void main() {
 
 
 	// let width be a function of v with some randomness
-	// TODO: play with randomness, it's the same for each strand rn
 	float rand2 = abs(random(vec2(u, u * u)));
 	float width = (random(vec2(3.534 * u, u * 37.19817)) + 0.1) * 0.2 * exp(-pow(v - 0.5, 2.0) / (2.0 * pow(0.2, 2.0)));
 	const float clumpRadius = 0.5f;
-	width = clumpRadius * mix(0.3, 0.1, v) * (rand2 + 0.5);// add this for "curly" hair + random(vec2(u, v)) * 0.1;
+	width = clumpRadius * mix(mix(0.05f, 0.3, v), mix(0.3, 0.1, v), v) * (rand2 + 0.5);
+	//width = clumpRadius * mix(0.3, 0.1, v) * (rand2 + 0.5);
+	//if (v == 0) {
+	//	width = 0.f;
+	//}
 	float uRad = 2.f * PI * u; // remap u to (0, 2pi)
 	vec3 dir = normalize(vec3(cos(uRad), 0.f, sin(uRad)));
 
-	float u1 = abs(random(vec2(u, u)));
-	float u2 = abs(random(vec2(u, u * u)));
-	float x1 = sqrt(-2.f * log(u1)) * cos(2.f * PI * u2);
-	float x2 = sqrt(-2.f * log(u2)) * cos(2.f * PI * u1);
+	// create random deviations in hair
+	float sd = 1.0;
+	float division = 1.0 / float(NUM_CURVE_POINTS - 1);
 
+	vec3 currRoot = in_curvePoints[0][0].xyz;
+
+	float randomChoice = random(vec2(u, currRoot.x)) * random(vec2(currRoot.y, currRoot.z));
+
+	if (randomChoice > 0.5) {
+		float maxLength = 2.0;
+		int maxCV = int(floor(maxLength * float(NUM_CURVE_POINTS - 1))) + 2;
+		if (randomChoice > 0.9) {
+			sd = 1.7f * exp(-pow(v - 0.25, 2.0) / (2.0 * pow(0.2, 2.0)));
+		} else if (randomChoice > 0.8) {
+			sd = 4.5f * pow(v, 10.0);
+		} else if (randomChoice > 0.7) {
+			sd = 2.5f * exp(-pow(v - 0.7, 2.0) / (2.0 * pow(0.2, 2.0)));
+		} else if (randomChoice > 0.6) {
+			sd = 4.f * pow(v, 1.3);
+		} else {
+			sd = 1.8f * exp(-pow(v - 0.8, 2.0) / (2.0 * pow(0.2, 2.0)));
+		}
+	}
+	if (randomChoice > 0.7) {
+//		sd = 2.7f * exp(-pow(v - 0.25, 2.0) / (2.0 * pow(0.2, 2.0))); // Top Gaussian
+//		sd = 6.5f * pow(v, 10.0); // Sharp Exponential Tips
+//		sd = 4.8f * exp(-pow(v - 0.8, 2.0) / (2.0 * pow(0.2, 2.0))); // Lower Gaussian
+//		sd = 6.f * pow(v, 1.3); // Gradual exponential
+
+	}
+
+	if (v == 0.0) {
+		sd = 1.0;
+	}
+	dir *= sd;
 
 	// caculate orthonormal basis for shading
 	//vec3 tangent = normalize(stupidFunc(u, v));
@@ -295,24 +292,14 @@ void main() {
 	vec3 tangent3 = normalize(in_curvePoints[2][segmentSecond].xyz - in_curvePoints[2][segmentFirst].xyz);
 	vec3 b_1; 
 	vec3 b_2;
-	//hughesMoellerMethod(tangent, b_1, b_2);
 	frisvadONB(tangent1, b_1, b_2);
-
-	dir *= sd;
-
 
 	out_u = tangent1;
 	out_v = b_1;
 	out_w = b_2;
 
-	u1 = (u1 * 2.f) + 1.f;
-	u2 = (u2 * 2.f) + 1.f;
-	//vec3 newDir = normalize(x1 * out_v + x2 * out_w);
-
-	// single stranding tessellation
+	// single strand tessellation
 	vec3 singleStrandPos = func(u, v) + width * dir;
-
-
 
 	float dist1 = distance(in_curvePoints[0][segmentFirst].xyz, in_curvePoints[1][segmentFirst].xyz);
 	float dist2 = distance(in_curvePoints[1][segmentFirst].xyz, in_curvePoints[2][segmentFirst].xyz);
@@ -329,23 +316,18 @@ void main() {
 
 	mat4 invLightView = inverse(shadowCamera.view); // TODO: compute ahead of time?
 	vec3 lightPos = vec3(invLightView[3][0], invLightView[3][1], invLightView[3][2]);
-
-	//vec3 lightPos = vec3(3.f, -1.f, 1.f);
 	out_lightDir = normalize(lightPos - pos);
 	mat4 invView = inverse(camera.view); // TODO: compute ahead of time?
 	vec3 cameraPos = vec3(invView[3][0], invView[3][1], invView[3][2]);
 	out_viewDir = cameraPos - pos;
 
-	const float rootWidth = 0.05;
+	const float rootWidth = 0.02;
 	const float tipWidth = 0.01;
 	out_strandWidth = mix(rootWidth, tipWidth, v);
 
-
 	//out_fragPosLightSpace = shadowCamera.proj * shadowCamera.view * vec4(pos, 1.0);
-
-
-
 	//gl_Position = camera.proj * camera.view * vec4(pos, 1.0);
+
 	gl_Position = vec4(pos, 1.0);
 }
 

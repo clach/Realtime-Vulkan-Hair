@@ -15,7 +15,7 @@ void main() {
 		
 	// lambert shading
 	float diffuseTerm = clamp(dot(normalize(fragNormal), normalize(fragLightVec)), 0, 1);
-	float lightIntensity = diffuseTerm + 0.2; // add some ambient lighting
+	float lightIntensity = diffuseTerm + 0.3; // add some ambient lighting
 
     outColor = vec4(color * lightIntensity, 1.0);
 }
