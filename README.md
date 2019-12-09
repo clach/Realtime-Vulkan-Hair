@@ -44,7 +44,9 @@ We created a real-time hair simulation using Vulkan. Our pipeline simulates phys
 <p align="center">
   <img src="images/sphere1.gif">
 </p>  
+
 # Implementation
+
 ## Overview
 We start by placing guide hairs on the surface of the head geometry, using a straightforward mesh sampling technique. Each strand is a string of individual points, called curve points. In a compute shader, we simulate physics on the points of these guide strands. Then in the graphics pipeline, we tessellate the input points of the strands. First we connect the strand curve points using Bezier interpolation between the points, to create a smooth, curved strand of hair. Next, also in the tessellation stage, we duplicate the guide strands to add density to the hair using single strand tessellation. The output of the tessellation process is isolines, or line segments. The strands are then passed through a geometry shader, which converts the isolines into camera-facing triangles, allowing us to control the width of the strands. Finally, shading and lighting are applied in the fragment shader using a shadow map and deep opacity map generated in two preceeding render passes, and the hair is rendered to screen.
 
@@ -180,15 +182,13 @@ The FPS exhibits a fairly exponential decrease as the divisions increase up unti
 ### Strand Interpolation
 #### Single Strand
 
-In single strand interpolation, one guide strand is tessellated to become multiple strands surrounding that strand. We tessellate the additional strands in a disc centered on the original strand by mapping the (0, 1) u tessellation coordinate to (0, 2pi) radians and using the angle to calculate a direction from the center. The magnitude of a specific point's direction from the original strand is based on its v tessellation coordinate (essentially a meausure of how far from the root a point is), to create a tapering effect at both the root and the tip. This creates an effect of clumping hairs.
+In single strand interpolation, one guide strand is tessellated to become multiple strands surrounding that strand. We tessellate the additional strands in a disc centered on the original strand by mapping the (0, 1) u tessellation coordinate to (0, 2pi) radians and using the angle to calculate a direction from the center. The magnitude of a specific point's direction from the original strand is based on its v tessellation coordinate (essentially a meausure of how far from the root a point is), to create a tapering effect at both the root and the tip. This creates an effect of clumping hairs:
 
-ADD PICTURE 
+![](images/singlestrandtess.gif)
 
 #### Multiple Strand
 
-TODO
-
-ADD PICTURE
+Another option for tessellation is to take three input guide strands and tessellate between them. We tried this but found that in situations in which the three input strands were on different sides of a collider, the newly tessellated strands would fall into the collider, ruining the appearance of hair-object collisions. We considered methods to fix this such as switching from multi-strand tessellation to single strand in cases in which the strands were too far apart and at very different angles, but found it simpler to stick to single strand tessellation alone.
 
 ##### Performance Analysis
 The chart below shows the affect of the number of interpolated strands per guide strand on the FPS:
@@ -219,6 +219,9 @@ Sharp Exponential       |  Gradual Exponential
 Our method for strand deviation is based off of Markus Rapp's master's thesis, [Real-Time Hair Rendering, Markus Rapp (2014)](http://markusrapp.de/wordpress/wp-content/uploads/hair/MarkusRapp-MasterThesis-RealTimeHairRendering.pdf).
 
 ### Geometry Shader
+
+The output of our tessellation pipeline is isolines, which are simply 2D line segments. Because these strands are very thin, they can somtimes take up less the width of a pixel, resulting in aliasing issues. We used the geometry shader to expand our isolines into camera facing quads, allowing us to control the width of the strands depending the distance to the camera.
+
 ## Rendering
 
 Rendering hair properly is not a trivial task. We identified three important components to a good hair renderer: single scattering, shadowing, and multiple scattering. 
@@ -249,14 +252,20 @@ Below is another example of backscattering on auburn hair:
 
 ### Shadow Mapping
 
-Self-shadowing is very important in the rendering of hair, as the many strands are constantly shadowing each other. We make use of a traditional shadow mapping pipeline, adding an additional render pass from the light's point of view to produce a depth map that is used to calculate if a fragment is in shadow or not. We found our shadows to be very chunky, often clashing with the delicate look of hair, and made use of Percentage Closer Filtering in our shadow calculation. Rather than sampling one texel in the depth map to determine if a fragment is in shadow, we sample multiple texels surrounding the area and determine what is essentially the shadow percentage. This creates the look of softer shadows at a relatively small performance decrease.
+Self-shadowing is very important in the rendering of hair, as the many strands are constantly shadowing each other. Here is the hair model with no shadows applied:
+
+![](images/noshadows.gif)
+
+You can see the single scattering model results in harsh highlights when viewed from angles that should be in shadow.
+
+We make use of a traditional shadow mapping pipeline, adding an additional render pass from the light's point of view to produce a depth map that is used to calculate if a fragment is in shadow or not. We found our shadows to be very chunky, often clashing with the delicate look of hair, and made use of Percentage Closer Filtering in our shadow calculation. Rather than sampling one texel in the depth map to determine if a fragment is in shadow, we sample multiple texels surrounding the area and determine what is essentially the shadow percentage. This creates the look of softer shadows at a relatively small performance decrease.
 
 #### Performance Analysis
 The chart below shows the affect on FPS of increasing the number of samples per pixel in the shadow depth pass. The more samples per pizel, the softer the shadows appear.
 
 ![](images/performanceShadowSamples.png)
 
-We experimented with the number of samples per pixel to sample, finding little visual improvement beyond 4x4 or 16 samples.
+We experimented with the number of samples per pixel to sample, finding little visual improvement beyond 16 samples.
 
 No PCF Applied           |  16-sample PCF         
 :---------------:|:-------------------------:
@@ -266,7 +275,7 @@ Since hair is a volumetric object, properly representing self-shadowing should g
 
 ### Multiple Scattering
 
-While single scattering results from light bouncing on an individual strand, multiple scattering results from light bouncing between multiple strands. Multiple scattering is very important to the hair model and is necessary for providing most of the hair's color (all of the above rendered hair images also include multiple scattering. Here is what single scattering looks like on its own (with shadows but no ambient light, on blonde hair):
+While single scattering results from light bouncing on an individual strand, multiple scattering results from light bouncing between multiple strands. Multiple scattering is very important to the hair model and is necessary for providing most of the hair's color (all of the above rendered hair images also include multiple scattering. Here is what single scattering looks like on its own on blonde hair (with shadows but no ambient light):
 
 ![](images/singlescatteringalone.gif)
 
@@ -279,6 +288,14 @@ As you can imagine, tracing light paths as they bounce off multiple strands is d
 The full scattering model, including single scattering, multiple scattering, shadows, and ambient light, for blonde hair can be seen below:
 
 ![](images/fullscatteringmodel.gif)
+
+# Future Steps
+
+One important feature that would greatly improve the look of our project is anti-aliasing, such as MSAAx4. This would help reduce a lot of the noise created by the very thin hair strands.
+
+If given more time, we also would like to add on onscreen GUI, perhaps by using Dear Imgui. This would allow for more art directability, including controlling hair color, length, thickness, wind direction, etc.
+
+Lastly, we would have liked to have explored styling hair, such as playing with length or recreating specific hair styles.
 
 # Thank You
 
@@ -303,5 +320,5 @@ We          | had          | some  | issues...
 :-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
 ![](images/Bloopers/b1.gif)| ![](images/Bloopers/b1.PNG) |![](images/Bloopers/b2.gif) |![](images/Bloopers/b2.PNG)
 ![](images/Bloopers/b3.gif)| ![](images/Bloopers/b3.PNG) |![](images/Bloopers/b4.gif) |![](images/Bloopers/b4.PNG)
-![](images/Bloopers/b5.PNG)| ![](images/Bloopers/b6.PNG) |![](images/Bloopers/b7.PNG) |![](images/Bloopers/HairBlooper.PNG)
+![](images/Bloopers/b5.PNG)| ![](images/Bloopers/cruella.PNG) |![](images/Bloopers/b7.PNG) |![](images/Bloopers/HairBlooper.PNG)
 
