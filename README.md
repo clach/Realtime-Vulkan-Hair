@@ -282,7 +282,7 @@ The full scattering model, including single scattering, multiple scattering, sha
 
 # Thank You
 
-We'd like to thank Dr. Chenfanfu Jiang for invaluable advice on the physics and collisions portion of this project, Sascha Willems for his speedy assistance with Vulkan, and Baldur Karlsson for creating the godly Renderdoc software.
+We'd like to thank Dr. Chenfanfu Jiang for invaluable advice on the physics and collisions portion of this project, Sascha Willems for his speedy and thorough assistance with Vulkan, and Baldur Karlsson for creating the godly Renderdoc software.
 
 # References
 - [Fast Simulation of Inextensible Hair and Fur, Müller et al. (2012)](http://matthias-mueller-fischer.ch/publications/FTLHairFur.pdf)
@@ -299,5 +299,9 @@ We'd like to thank Dr. Chenfanfu Jiang for invaluable advice on the physics and 
 - [Real-Time Hair Rendering on the GPU, Tariq (2008)](https://developer.download.nvidia.com/presentations/2008/SIGGRAPH/RealTimeHairRendering_SponsoredSession2.pdf)
 
 # Bloopers
-
+We          | had          | some  | issues...
+:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
+![](images/Bloopers/b1.gif)| ![](images/Bloopers/b1.PNG) |![](images/Bloopers/b2.gif) |![](images/Bloopers/b2.PNG)
+![](images/Bloopers/b3.gif)| ![](images/Bloopers/b3.PNG) |![](images/Bloopers/b4.gif) |![](images/Bloopers/b4.PNG)
+![](images/Bloopers/b5.PNG)| ![](images/Bloopers/b6.PNG) |![](images/Bloopers/b7.PNG) |![](images/Bloopers/HairBlooper.PNG)
 
