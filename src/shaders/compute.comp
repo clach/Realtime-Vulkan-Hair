@@ -136,7 +136,7 @@ void main() {
 	Strand strand = inStrands[threadIdx];
 	
 	// Temporarily hard codes radius between curve points
-	float strandLength = 2.f;
+	float strandLength = 2.5f;
 	float radius = strandLength / (NUM_CURVE_POINTS - 1.0);
 
 	float dt = deltaTime * 1.0;
@@ -148,8 +148,8 @@ void main() {
 		
 		// Add gravity
 		vec3 force = vec3(0.0, -9.8, 0.0);
-		//force += 10.0 * vec3(2.0 * sin(totalTime * 2.0) * cos(currentPos.y * 10.0) * sin((currentPos.y + 5.0) * 15.0), 0.0, -clamp(currentPos.y * 2.0, 0.2, 2.0));
-		//force += 7.0 * fbm(vec2(sin(totalTime), cos(totalTime))) * vec3(2.0 * sin(totalTime * 2.0) * cos(currentPos.y * 10.0) * sin((currentPos.y + 5.0) * 15.0), 0.0, -(currentPos.y + 2.0));
+//		force += 10.0 * vec3(2.0 * sin(totalTime * 2.0) * cos(currentPos.y * 10.0) * sin((currentPos.y + 5.0) * 15.0), 0.0, -clamp(currentPos.y * 2.0, 0.2, 2.0));
+//		force += 7.0 * fbm(vec2(sin(totalTime), cos(totalTime))) * vec3(2.0 * sin(totalTime * 2.0) * cos(currentPos.y * 10.0) * sin((currentPos.y + 5.0) * 15.0), 4.0 * sin(currentPos.z * 5.0 + totalTime * 3.0), -0.6 * (currentPos.y + 3.0));
 	
 		// Add penalty force for colliders
 		int numColliders = 0;
@@ -203,7 +203,7 @@ void main() {
 
 	// Setup grid parameters:
 	float h = float(GRID_HEIGHT) / float(GRID_DIM);
-	vec3 origin = vec3(-3.0, -1.0, -3.0);
+	vec3 origin = vec3(-3.0, -2.0, -5.0);
 
 	
 	barrier(); // Wait until all threads have reached here
