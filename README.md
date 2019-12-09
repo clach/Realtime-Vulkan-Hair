@@ -121,7 +121,9 @@ This grid transfer process causes nearby strands of hair to move with more simil
 
 The friction also creates some volume for the hair. If many strands are being pushed towards other still strands, the small velocities of the still strands will gradually transfer over to the strands being pushed towards them, slow those strands down. Because of this gradual slow down, rather than continuing to fall directly on top of the still strands, the moving strands will slow to a stop earlier, creating volume as they rest on top of the still strands. 
 
-This velocity smoothing creates some volume, but not the full effect of volume, as the strands can still overlap each other. To create full volume, there must be an additional repulsion force between strands.
+The following image exemplifies this volume created by smoothing the velocities:
+
+![](images/frictionCollisionVolume.PNG)
 
 ## Tessellation and Geometry Shader
 The physics is only performed on individual points along each strand of hair. To have the points look like actual hair strands, we need to connect the points with smooth curves, duplicate the guide strands to add density, and convert the hairs from lines to 2D geometry.
@@ -136,7 +138,26 @@ The following is an example of a Bezier curve (red) with its curve points (blue)
 ### Strand Interpolation
 #### Single Strand
 #### Multiple Strand
-### Random Strand Deviation
+#### Random Strand Deviation
+With just single strand and multiple strand interpolation alone, the hair has a very uniform, neat appearance. Realistically, however, individual strands of hair can deviate from the nearby hairs. To achieve this effect, when tessellating strands to duplicate the guide strands, we probabilistically choose to deviate the strands from their guide strand. 
+
+With a probability of 0.5, a strand has some deviation. To get this probability, we choose use a deterministic random function to get a random number between 0 and 1 dependent on the guide strand position and the tessellation value that differentiates individual strands that are interpolated off of the guide strand. This gives each rendered strand a unique random number. If this random number is above 0.5, we apply a deviation. 
+
+If a tessellation point on a hair is deviated, the distance that it gets pushed away from the guide strand is scaled up. This scale does not have to apply to the entire strand, but can vary along the length of the strand, so part of the strand can be more aligned with the guide hair, and other can be deviated to be further away.
+
+There are 5 distributions of deviation, each occuring with equal probability. Some deviations use a guassian curve to adjust the tessellated strands. One gaussian curve is centered close to the root of the hair, causing stray, deviated hairs at the top of the head. Two other guassian curves cause more deviations towards the bottome of the strands, each with different scales of deviation. Other deviations follow an exponential curve based on the distance along the strand. One exponential deviation very sharply increases towards the tip of the hair, causing flyaway bits at the tips. Another exponential strand is a much more gradual exponential increase, causing almost the whole strand to be deviated.
+
+The below images represent exaggerated versions of the three general deviation shapes (high and low guassian, sharp and gradual exponential):
+
+High Gaussian            |  Low Gaussian         
+:-------------------------:|:-------------------------:
+![](images/highGaussian.PNG)| ![](images/lowGaussian.PNG)
+
+Sharp Exponential       |  Gradual Exponential          
+:-------------------------:|:-------------------------:
+![](images/sharpExp.PNG)| ![](images/gradualExp.PNG)
+
+### Geometry Shader
 ## Rendering
 ### Single Scattering
 ### Shadow Mapping
