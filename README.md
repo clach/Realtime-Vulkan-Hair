@@ -5,14 +5,16 @@ Final Project**
 * Grace Gilbert: [LinkedIn](https://www.linkedin.com/in/grace-gilbert-2493a0156/), [personal website](http://gracelgilbert.com/)
 * Caroline Lachanski: [LinkedIn](https://www.linkedin.com/in/caroline-lachanski/), [personal website](http://carolinelachanski.com/)
 
-Tested on: TBD
+Tested on: Windows 10, i9-9900K @ 3.60GHz 64GB, GeForce RTX 2080 40860MB
+
+<p align="center">
+  <img src="images/wind3.gif">
+</p>
 
 # Overview
 Simulating and rendering hair in realtime is an important challenge in computer graphics for many reasons. A head of hair can contain approximately 1,000,000 strands of hair. These strands exhibit inextensible spring-like behavior, meaning their behavior is similar to a string of linked, very stiff springs. Additionally, the many strands must interact with each other and external objects. Hair also exhibits a number of interesting visual properties, and can't be properly represented with traditional realtime rendering techniques.
 
 We created a real-time hair simulation using Vulkan. Our pipeline simulates physics on a relatively small number of guide hairs, duplicates these guide hairs to increase the visual density of the hair using the tessellation hardware, and then renders the strands with approximated physically-based scattering. The user is able to interact with the hair in real time, moving a collision sphere and light throughout the head of hair. 
-
-![](images/pocahantos.gif)
 
 # Milestones
 - [Pitch](presentations/ProjectPitch.pdf)
@@ -39,6 +41,9 @@ We created a real-time hair simulation using Vulkan. Our pipeline simulates phys
   - Multiple strand interpolation
   - Polish
   
+<p align="center">
+  <img src="images/sphere1.gif">
+</p>  
 # Implementation
 ## Overview
 We start by placing guide hairs on the surface of the head geometry, using a straightforward mesh sampling technique. Each strand is a string of individual points, called curve points. In a compute shader, we simulate physics on the points of these guide strands. Then in the graphics pipeline, we tessellate the input points of the strands. First we connect the strand curve points using Bezier interpolation between the points, to create a smooth, curved strand of hair. Next, also in the tessellation stage, we duplicate the guide strands to add density to the hair using single strand tessellation. The output of the tessellation process is isolines, or line segments. The strands are then passed through a geometry shader, which converts the isolines into camera-facing triangles, allowing us to control the width of the strands. Finally, shading and lighting are applied in the fragment shader using a shadow map and deep opacity map generated in two preceeding render passes, and the hair is rendered to screen.
@@ -58,6 +63,10 @@ To simulate the spring-like behavior of the hair strands, we use a Follow-the-Le
 Our physics simulation model is based off of Matthias Müller's paper, [Fast Simulation of Inextensible Hair and Fur, Müller et al. (2012)](http://matthias-mueller-fischer.ch/publications/FTLHairFur.pdf).
 
 We start with the PBD technique of updating the point position according to its current position, velocity, and force. This is where any external forces, such as gravity and wind, get applied. The base point of each strand remains pinned to the head.
+
+Below is an example of adding a wind force to the strands:
+
+![](images/wind1.gif)
 
 Next, we apply FTL as a constraint, moving the updated point position to the closest position that is the correct distance from the parent point on the strand. To do this, we find the direction of the point to its parent point (the adjacent point that is closer to the root of the strand). We move the point along this direction so that it is a predetermined distance away from the parent. This distance is the length of the strand divided by the number of segments.
 
@@ -88,7 +97,7 @@ One downside of the penalty approach is that it is dependent on a small delta ti
 
 The following gif demonstrates hair-object collision:
 
-![](images/collisionExample.gif)
+![](images/sphere2.gif)
 
 ### Hair-Hair Interaction
 To achieve friction between the strands of hair, we create a velocity field out of the strand's velocities and use this field to effectively smooth out the velocities over the strands.
@@ -139,6 +148,17 @@ The friction also creates some volume for the hair. If many strands are being pu
 The following image exemplifies this volume created by smoothing the velocities:
 
 ![](images/frictionCollisionVolume.PNG)
+
+### Physics Examples
+#### Sphere Interaction
+Cut Through           | Side            | Back | Front
+:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
+![](images/sphere1.gif)| ![](images/sphere2.gif) |![](images/sphere3.gif) |![](images/sphere4.gif)
+
+#### Varying Wind
+Strong Wind          | Gentle Wind           | Strong Wind, Long Hair  | Wind Sphere Interaction
+:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
+![](images/wind1.gif)| ![](images/wind2.gif) |![](images/wind3.gif) |![](images/wind4.gif)
 
 ## Tessellation and Geometry Shaders
 The above physics is only performed on individual points along each strand of hair. To have the points look like actual hair strands, we need to connect the points with smooth curves, duplicate the guide strands to add density, and convert the hairs from lines to 2D geometry.
