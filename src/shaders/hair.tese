@@ -258,10 +258,8 @@ void main() {
 	float randomChoice = random(vec2(u, currRoot.x)) * random(vec2(currRoot.y, currRoot.z));
 
 	if (randomChoice > 0.5) {
-		float maxLength = 2.0;
-		int maxCV = int(floor(maxLength * float(NUM_CURVE_POINTS - 1))) + 2;
 		if (randomChoice > 0.9) {
-			sd = 1.7f * exp(-pow(v - 0.25, 2.0) / (2.0 * pow(0.2, 2.0)));
+			sd = 1.8f * exp(-pow(v - 0.25, 2.0) / (2.0 * pow(0.2, 2.0)));
 		} else if (randomChoice > 0.8) {
 			sd = 4.5f * pow(v, 10.0);
 		} else if (randomChoice > 0.7) {
@@ -270,8 +268,15 @@ void main() {
 			sd = 4.f * pow(v, 1.3);
 		} else {
 			sd = 1.8f * exp(-pow(v - 0.8, 2.0) / (2.0 * pow(0.2, 2.0)));
-		}
+		} 
+		//sd *= 1.3;
 	}
+//	if (randomChoice > 0.7) {
+//		sd = 2.7f * exp(-pow(v - 0.25, 2.0) / (2.0 * pow(0.2, 2.0))); // Top Gaussian
+//		sd = 6.5f * pow(v, 10.0); // Sharp Exponential Tips
+//		sd = 4.8f * exp(-pow(v - 0.8, 2.0) / (2.0 * pow(0.2, 2.0))); // Lower Gaussian
+//		sd = 6.f * pow(v, 1.3); // Gradual exponential
+// }
 
 	if (v == 0.0) {
 		sd = 1.0;
