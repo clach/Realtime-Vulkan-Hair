@@ -156,7 +156,7 @@ Hair::Hair(Device* device, VkCommandPool commandPool, std::string objFilename) :
 
 	for (int i = 0; i < numStrands; i++) {
 		Strand currentStrand = Strand();
-		float length = 5.f;
+		float length = 2.f;
 
 		// initialize curve point position, velocity and correction vector data
 		glm::vec3 currPoint = pointsOnMesh[i];
