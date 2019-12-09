@@ -45,10 +45,17 @@ We start by placing guide hairs on the surface of the head geometry, using a str
 
 ![](images/PipelineOverviewSIGGRAPH2010.PNG)
 
-![](images/performanceNumStrands.PNG)
+#### Performance Analysis
+The chart below visualizes the effect of the number of guide strands being simulated on the FPS:
+
+![](images/performanceNumStrands.png)
+
+This chart indicates an exponential decrease in FPS as more strands are rendered. However, even with many strands, the FPS is still rendering fast enough for real-time.
 
 ## Physics
 To simulate the spring-like behavior of the hair strands, we use a Follow-the-Leader (FTL), Position Based Dynamics (PBD) approach. Each strand is split into many segments, each like little springs. Because hair does not stretch significantly, the springs are very stiff. To simulate very stiff springs using a more physically based mass-spring system would be very costly and inefficient. Instead, we apply FTL to ensure that the segments maintain their length. 
+
+Our physics simulation model is based off of Matthias Müller's paper, [Fast Simulation of Inextensible Hair and Fur, Müller et al. (2012)](http://matthias-mueller-fischer.ch/publications/FTLHairFur.pdf).
 
 We start with the PBD technique of updating the point position according to its current position, velocity, and force. This is where any external forces, such as gravity and wind, get applied. The base point of each strand remains pinned to the head.
 
@@ -85,6 +92,8 @@ The following gif demonstrates hair-object collision:
 
 ### Hair-Hair Interaction
 To achieve friction between the strands of hair, we create a velocity field out of the strand's velocities and use this field to effectively smooth out the velocities over the strands.
+
+Our hair-hair collision model is based off of Lena Petrovic's paper, [Volumetric methods for simulation and rendering of hair, Petrovic et al. (2005)](https://graphics.pixar.com/library/Hair/paper.pdf).
 
 When we first set the velocity of a point on a strand, we add that point's contribution to a background uniform grid, which is empty at the beginning of each timestep. We add both the density of the point and its velocity contribution to the 8 neighboring grid points. The contribution to each of the 8 points is based on a linear interpolation of the distance in each dimension from the strand point to the grid point:
 
@@ -141,8 +150,12 @@ The following is an example of a Bezier curve (red) with its curve points (blue)
 
 ![](images/BezierExample.PNG)
 
-![](images/performanceDivisions.PNG)
+#### Performanace Analysis
+The chart below shows the affect of the number of tessellated divisions along each strand on the FPS. Ther more divisions there are, the smoother the bezier curve will be, as we interpolate along the Bezier curve at more positions along the curve:
 
+![](images/performanceDivisions.png)
+
+The FPS exhibits a fairly exponential decrease as the divisions increase up until about 70 divisions, where the FPS seems to plateau. At this point, we hypothesize that there is a maximum number of divisions and increasing the input value does not actually affect the computation. 70 divisions is already significantly more than necessary, and the difference is nearly impossible to detect, but this may explain why the FPS does not continue dropping.
 
 ### Strand Interpolation
 #### Single Strand
@@ -157,8 +170,12 @@ TODO
 
 ADD PICTURE
 
-![](images/performanceNumTessellated.PNG)
+##### Performance Analysis
+The chart below shows the affect of the number of interpolated strands per guide strand on the FPS:
 
+![](images/performanceNumTessellated.png)
+
+The FPS exhibits a steady exponential falloff as we interpolate more strands for each guide strand, but again, always remains fast enough for real-time for any reasonable number of interpolated strands.
 
 #### Random Strand Deviation
 With just single strand and multiple strand interpolation alone, the hair has a very uniform, neat appearance. Realistically, however, individual strands of hair can deviate from the nearby hairs. To achieve this effect, when tessellating strands to duplicate the guide strands, we probabilistically choose to deviate the strands from their guide strand. 
@@ -178,6 +195,8 @@ High Gaussian            |  Low Gaussian
 Sharp Exponential       |  Gradual Exponential          
 :-------------------------:|:-------------------------:
 ![](images/sharpExp.PNG)| ![](images/gradualExp.PNG)
+
+Our method for strand deviation is based off of Markus Rapp's master's thesis, [Real-Time Hair Rendering, Markus Rapp (2014)](http://markusrapp.de/wordpress/wp-content/uploads/hair/MarkusRapp-MasterThesis-RealTimeHairRendering.pdf).
 
 ### Geometry Shader
 ## Rendering
@@ -202,7 +221,10 @@ INSERT PICTURES, GIFS HERE
 
 Self-shadowing is very important in the rendering of hair, as the many strands are constantly shadowing each other. We make use of a traditional shadow mapping pipeline, adding an additional render pass from the light's point of view to produce a depth map that is used to calculate if a fragment is in shadow or not. We found our shadows to be very chunky, often clashing with the delicate look of hair, and made use of Percentage Closer Filtering in our shadow calculation. Rather than sampling one texel in the depth map to determine if a fragment is in shadow, we sample multiple texels surrounding the area and determine what is essentially the shadow percentage. This creates the look of softer shadows at a relatively small performance decrease.
 
-![](images/performanceShadowSamples.PNG)
+#### Performance Analysis
+The chart below shows the affect on FPS of increasing the number of samples per pixel in the shadow depth pass. The more samples per pizel, the softer the shadows appear.
+
+![](images/performanceShadowSamples.png)
 
 We experimented with the number of samples per pixel to sample, finding little visual improvement beyond 4x4 or 16 samples.
 
@@ -224,12 +246,13 @@ fhslfjlskf
 We'd like to thank Dr. Chenfanfu Jiang for invaluable advice on the physics and collisions portion of this project, Sascha Willems for his speedy assistance with Vulkan, and Baldur Karlsson for creating the godly Renderdoc software.
 
 # References
-- Fast Simulation of Inextensible Hair and Fur (Müller, Kim, Chentanez)
-- Volumetric methods for simulation and rendering of hair (Petrovic, Henne, Anderson)
-- Position Based Dynamics (Müller, Heidelberger, Hennix, Ratcliff)
-- CIS 563 Course Material (Chenfanfu Jiang)
-- CIS 562 Course Material (Stephen Lane)
-- Real-Time Hair Rendering, Master Thesis (Markus Rapp)
+- [Fast Simulation of Inextensible Hair and Fur, Müller et al. (2012)](http://matthias-mueller-fischer.ch/publications/FTLHairFur.pdf)
+- [Volumetric methods for simulation and rendering of hair, Petrovic et al. (2005)](https://graphics.pixar.com/library/Hair/paper.pdf).
+- [Position Based Dynamics, Müller et al. (2006)](https://matthias-research.github.io/pages/publications/posBasedDyn.pdf)
+- CIS 563 Course Material, Chenfanfu Jiang
+- CIS 562 Course Material, Stephen Lane
+- [Real-Time Hair Rendering, Markus Rapp (2014)](http://markusrapp.de/wordpress/wp-content/uploads/hair/MarkusRapp-MasterThesis-RealTimeHairRendering.pdf)
+- [Sascha Willems's Vulkan dynamic buffer example](https://github.com/SaschaWillems/Vulkan/tree/master/examples/dynamicuniformbuffer)
 - [Light Scattering from Human Hair Fibers, Marschner et al. (2003)](http://www.graphics.stanford.edu/papers/hair/hair-sg03final.pdf)
 - [Physically Based Hair Shading in Unreal, Brian Karis (2016)](https://blog.selfshadow.com/publications/s2016-shading-course/karis/s2016_pbs_epic_hair.pdf)
 - [Deep Opacity Maps, Yuksel and Keyser (2008)](http://www.cemyuksel.com/research/deepopacity/deepopacitymaps.pdf)
