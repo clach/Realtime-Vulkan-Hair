@@ -151,7 +151,7 @@ The below images represent exaggerated versions of the three general deviation s
 
 High Gaussian            |  Low Gaussian         
 :-------------------------:|:-------------------------:
-![](images/highGaussian.PNG)| ![](images/lowGaussian.PNG)
+![](images/topGaussian.PNG)| ![](images/lowGaussian.PNG)
 
 Sharp Exponential       |  Gradual Exponential          
 :-------------------------:|:-------------------------:
