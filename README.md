@@ -207,15 +207,25 @@ Rendering hair properly is not a trivial task. We identified three important com
 
 Single scattering represents the effect of light on one strand of hair. Most realtime applications use a method derived from the [Marschner Model](http://www.graphics.stanford.edu/papers/hair/hair-sg03final.pdf), which presented a physically-based single scattering model for a curve based on real experimental measurements of hair. The Marschner model defines a scattering function, `S(θi , θo, φi , φo)`, in which `θi` and `φi` are the longitudinal and azimuthal angles of the incoming light direction, respectively, and `θo` and `φo` are the longitudinal and azimuthal angles of the outgoing light direction, respectively. They rewrite `S` as a product of the longitudinal scattering function `M(θi, θo)` and the azimuthal scattering function `N(θd, φd)`. 
 
-INSERT IMAGE HERE
+![](images/hairmodel.png)
 
 Within each of those functions, they focus on three light paths, finding that these three accounted for the majority of the visual properties seen in real hair. These paths are: R, in which light hits surface and is immediately reflected; TT, in which light transmitted inside hair, then transmitted back out; and TRT, in which light is transmitted inside the hair, reflected at the backside of the hair, then transmitted again. R accounts for the primary reflection, TT for backscattering, and TRT for secondary reflection.
 
-INERT IMAGES HERE
+![](images/lightpaths.jpg)
 
 Since 2003, many modifications or approximations have been made to the model since, for reasons such as better performance or better artist directability. For our project, we based our single scattering model on the one presented in the SIGGRAPH 2016 presentation, [Physically Based Hair Shading in Unreal](https://blog.selfshadow.com/publications/s2016-shading-course/karis/s2016_pbs_epic_hair.pdf).
 
-INSERT PICTURES, GIFS HERE
+Here you can see the result of the R path, the primary reflection:
+
+![](images/movingprimaryreflection.gif)
+
+In this gif, you can see the transition from primary and secondary reflection to backscattering as the angles to the light source (`θi`, `φi`) change:
+
+![](images/movinglight.gif)
+
+Below is another example of backscattering on auburn hair:
+
+![](images/backscattering_auburn2.PNG)
 
 ### Shadow Mapping
 
@@ -232,14 +242,23 @@ No PCF Applied           |  16-sample PCF
 :---------------:|:-------------------------:
 ![](images/noPCFshadows.PNG)| ![](images/pcfshadpws2.PNG)
 
-Since hair is a volumetric object, properly representing self-shadowing should go beyond a simple shadow map. We implemented [deep opacity maps](http://www.cemyuksel.com/research/deepopacity/deepopacitymaps.pdf) using an additional render pass following the depth pass. This should FJDLFJLKSFJ
-
+Since hair is a volumetric object, properly representing self-shadowing should go beyond a simple shadow map. We implemented [deep opacity maps](http://www.cemyuksel.com/research/deepopacity/deepopacitymaps.pdf) using an additional render pass following the depth pass. This divides the hairs into several layers from the light's perspective, with each layer being more distant from the light and thus having a higher opacity. Only a small number of layers (such as 3) are required for a good visual result, allowing for the layers to be stored as channels in a single output texture. However, perhaps due to a poor implementation, we found this to look no better (and sometimes worse) than the traditional shadow map method. We continued to use the traditional shadow map for our shadow calculation, but made use of the opacity map in multiple scattering.
 
 ### Multiple Scattering
 
-fhslfjlskf
+While single scattering results from light bouncing on an individual strand, multiple scattering results from light bouncing between multiple strands. Multiple scattering is very important to the hair model and is necessary for providing most of the hair's color (all of the above rendered hair images also include multiple scattering. Here is what single scattering looks like on its own (with shadows but no ambient light, on blonde hair):
 
+![](images/singlescatteringalone.gif)
 
+You can see it doesn't really have any color besides the reflections and backscattering!).
+
+As you can imagine, tracing light paths as they bounce off multiple strands is difficult to accomplish without a path tracer. Several approximations have been presented, and for simplicity we used the one shown in [Physically Based Hair Shading in Unreal](https://blog.selfshadow.com/publications/s2016-shading-course/karis/s2016_pbs_epic_hair.pdf). This involves creation of a fake normal vector and approximating the absorption over a light path, for which we used deep opacity maps. Here is the result of multiple scattering alone (blonde hair):
+
+![](images/multiplescattering.gif)
+
+The full scattering model, including single scattering, multiple scattering, shadows, and ambient light, for blonde hair can be seen below:
+
+![](images/fullscatteringmodel.gif)
 
 # Thank You
 
