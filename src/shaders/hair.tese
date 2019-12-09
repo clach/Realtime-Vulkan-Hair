@@ -261,23 +261,29 @@ void main() {
 		float maxLength = 2.0;
 		int maxCV = int(floor(maxLength * float(NUM_CURVE_POINTS - 1))) + 2;
 		if (randomChoice > 0.9) {
-			sd = 2.5f * exp(-pow(v - 0.25, 2.0) / (2.0 * pow(0.2, 2.0)));
+			sd = 1.7f * exp(-pow(v - 0.25, 2.0) / (2.0 * pow(0.2, 2.0)));
 		} else if (randomChoice > 0.8) {
-			sd = 6.5f * pow(v, 10.0);
+			sd = 4.5f * pow(v, 10.0);
 		} else if (randomChoice > 0.7) {
-			sd = 4.8f * exp(-pow(v - 0.7, 2.0) / (2.0 * pow(0.2, 2.0)));
+			sd = 2.5f * exp(-pow(v - 0.7, 2.0) / (2.0 * pow(0.2, 2.0)));
 		} else if (randomChoice > 0.6) {
-			sd = 6.f * pow(v, 1.3);
+			sd = 4.f * pow(v, 1.3);
 		} else {
-			sd = 2.4f * exp(-pow(v - 0.8, 2.0) / (2.0 * pow(0.2, 2.0)));
+			sd = 1.8f * exp(-pow(v - 0.8, 2.0) / (2.0 * pow(0.2, 2.0)));
 		}
+	}
+	if (randomChoice > 0.7) {
+//		sd = 2.7f * exp(-pow(v - 0.25, 2.0) / (2.0 * pow(0.2, 2.0))); // Top Gaussian
+//		sd = 6.5f * pow(v, 10.0); // Sharp Exponential Tips
+//		sd = 4.8f * exp(-pow(v - 0.8, 2.0) / (2.0 * pow(0.2, 2.0))); // Lower Gaussian
+//		sd = 6.f * pow(v, 1.3); // Gradual exponential
+
 	}
 
 	if (v == 0.0) {
 		sd = 1.0;
 	}
-
-	//dir *= sd;
+	dir *= sd;
 
 	// caculate orthonormal basis for shading
 	//vec3 tangent = normalize(stupidFunc(u, v));

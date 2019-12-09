@@ -131,7 +131,7 @@ namespace {
 
 
 void moveSphere(VkCommandPool commandPool) {
-	float delta = 0.005;
+	float delta = 0.001;
 	glm::vec3 translation(0.0);
 	if (WDown) {
 		translation += glm::vec3(0.0, delta, 0.0);
@@ -223,7 +223,7 @@ int main() {
 	Model* mannequin = new Model(device, transferCommandPool, vertices, indices, glm::scale(glm::vec3(0.98f)));
 	mannequin->SetTexture(mannequinDiffuseImage);
 
-	Hair* hair = new Hair(device, transferCommandPool, "models/mannequin_segment2.obj");
+	Hair* hair = new Hair(device, transferCommandPool, "models/mannequin_segment.obj");
 
 	// trans, rot, scale
 	Collider sphereCollider = Collider(glm::vec3(2.0, 0.0, 1.0), glm::vec3(0.0), glm::vec3(1.0));
