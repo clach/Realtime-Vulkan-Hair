@@ -12,7 +12,7 @@ Tested on: Windows 10, i9-9900K @ 3.60GHz 64GB, GeForce RTX 2080 40860MB
 </p>
 
 # Overview
-Simulating and rendering hair in realtime is an important challenge in computer graphics for many reasons. A head of hair can contain approximately 1,000,000 strands of hair. These strands exhibit inextensible spring-like behavior, meaning their behavior is similar to a string of linked, very stiff springs. Additionally, the many strands must interact with each other and external objects. Hair also exhibits a number of interesting visual properties, and can't be properly represented with traditional realtime rendering techniques.
+Simulating and rendering hair in realtime is an important challenge in computer graphics for many reasons. A head of hair can contain approximately 100,000 strands of hair. These strands exhibit inextensible spring-like behavior, meaning their behavior is similar to a string of linked, very stiff springs. Additionally, the many strands must interact with each other and external objects. Hair also exhibits a number of interesting visual properties, and can't be properly represented with traditional realtime rendering techniques.
 
 We created a real-time hair simulation using Vulkan. Our pipeline simulates physics on a relatively small number of guide hairs, duplicates these guide hairs to increase the visual density of the hair using the tessellation hardware, and then renders the strands with approximated physically-based scattering. The user is able to interact with the hair in real time, moving a collision sphere and light throughout the head of hair. 
 
@@ -32,7 +32,7 @@ We created a real-time hair simulation using Vulkan. Our pipeline simulates phys
   - Extend isolines into triangles with geometry shader
   - Begin single scattering rendering
   - Interactive collision sphere
-- Final
+- [Final](presentations/FinalPresentation.pdf)
   - Hair-hair collision
   - Complete single scattering
   - Shadow mapping
@@ -231,7 +231,7 @@ Single scattering represents the effect of light on one strand of hair. Most rea
 
 ![](images/hairmodel.png)
 
-Within each of those functions, they focus on three light paths, finding that these three accounted for the majority of the visual properties seen in real hair. These paths are: R, in which light hits surface and is immediately reflected; TT, in which light transmitted inside hair, then transmitted back out; and TRT, in which light is transmitted inside the hair, reflected at the backside of the hair, then transmitted again. R accounts for the primary reflection, TT for backscattering, and TRT for secondary reflection.
+Within each of those functions, they focus on three light paths, finding that these three accounted for the majority of the visual properties seen in real hair. These paths are: R, in which light hits surface and is immediately reflected; TT, in which light transmitted inside hair, then transmitted back out; and TRT, in which light is transmitted inside the hair, reflected at the backside of the hair, then transmitted again. R accounts for the primary reflection, TT for transmission, and TRT for secondary reflection.
 
 ![](images/lightpaths.jpg)
 
@@ -241,11 +241,11 @@ Here you can see the result of the R path, the primary reflection:
 
 ![](images/movingprimaryreflection.gif)
 
-In this gif, you can see the transition from primary and secondary reflection to backscattering as the angles to the light source (`θi`, `φi`) change:
+In this gif, you can see the transition from primary and secondary reflection (R and TRT paths) to backlighting (TT path) as the angles to the light source (`θi`, `φi`) change:
 
 ![](images/movinglight.gif)
 
-Below is another example of backscattering on auburn-colored hair:
+Below is another example of backlighting from forward scattering (TT path) on auburn-colored hair:
 
 ![](images/backscattering_auburn2.PNG)
 
@@ -278,7 +278,7 @@ While single scattering results from light bouncing on an individual strand, mul
 
 ![](images/singlescatteringalone.gif)
 
-You can see it doesn't really have any color besides the reflections and backscattering!).
+You can see it doesn't really have any color besides the reflections and backlighting from the forward scattering!).
 
 As you can imagine, tracing light paths as they bounce off multiple strands is difficult to accomplish without a path tracer. Several approximations have been presented, and for simplicity we used the one shown in [Physically Based Hair Shading in Unreal](https://blog.selfshadow.com/publications/s2016-shading-course/karis/s2016_pbs_epic_hair.pdf). This involves creation of a fake normal vector and approximating the absorption over a light path, for which we used deep opacity maps. Here is the result of multiple scattering alone (blonde hair):
 
@@ -298,7 +298,7 @@ Lastly, we would have liked to have explored styling hair, such as playing with 
 
 # Thank You
 
-We'd like to thank Dr. Chenfanfu Jiang for invaluable advice on the physics and collisions portion of this project, Sascha Willems for his speedy and thorough assistance with Vulkan, and Baldur Karlsson for creating the godly Renderdoc software.
+We'd like to thank Dr. Chenfanfu Jiang for invaluable advice on the physics and collisions portion of this project, Sascha Willems for his speedy and thorough assistance with Vulkan, and Baldur Karlsson for creating the godly RenderDoc software.
 
 # References
 - [Fast Simulation of Inextensible Hair and Fur, Müller et al. (2012)](http://matthias-mueller-fischer.ch/publications/FTLHairFur.pdf)
